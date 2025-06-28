@@ -1,4 +1,3 @@
-
 import 'package:expensetrack/core/appcolors.dart';
 import 'package:expensetrack/features/transactions/provider/transaction_data_provider.dart';
 import 'package:expensetrack/features/transactions/widgets/add_dates.dart';
@@ -12,24 +11,34 @@ class AddTransactionBottomsheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final addTransactionProvider = Provider.of<TransactionDataProvider>( context,listen: false );
+    final addTransactionProvider = Provider.of<TransactionDataProvider>(
+      context,
+      listen: false,
+    );
 
     return IconButton(
       onPressed: () {
-        showBottomSheet(
+        showModalBottomSheet(
+          isScrollControlled: true,
           constraints: BoxConstraints.tight(
             Size(
               MediaQuery.sizeOf(context).width * 0.9,
-              MediaQuery.sizeOf(context).height * 0.7,
+              MediaQuery.sizeOf(context).height * 0.8,
             ),
           ),
           context: context,
           builder: (context) {
             return Padding(
-              padding: EdgeInsets.all(20),
-              child: Column(
-                spacing: 20,
+              padding: EdgeInsets.only(
+                    left: 20,
+      right: 20,
+      top: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom
+              ),
+              child: ListView(
+                
                 children: [
+                  SizedBox(height: 20,),
                   Row(
                     children: [
                       IconButton(
@@ -41,30 +50,37 @@ class AddTransactionBottomsheet extends StatelessWidget {
                       Text("Add Transactions"),
                     ],
                   ),
-
+                  SizedBox(height: 20,),
+                  transactionadd(mycontroller: addTransactionProvider.titleController, hinttext: 'Title', keyboardtype: TextInputType.text),
+ SizedBox(height: 20,),
                   transactionadd(
                     mycontroller: addTransactionProvider.amountController,
                     hinttext: "Amount",
                     keyboardtype: TextInputType.number,
                   ),
-
+ SizedBox(height: 20,),
                   DropDownWidget(),
+                   SizedBox(height: 20,),
                   AddDates(),
+                   SizedBox(height: 20,),
                   transactionadd(
                     mycontroller: addTransactionProvider.descriptionController,
                     hinttext: "Description",
-                    keyboardtype: TextInputType.multiline,
+                    keyboardtype:TextInputType.text ,
                   ),
+                   SizedBox(height: 20,),
                   SwitchTransactionWidget(),
-                  Spacer(),
+                   SizedBox(height: 40,),
                   ElevatedButton(
                     onPressed: () {
                       addTransactionProvider.addTransaction();
-                      ScaffoldMessenger.of(
-                        context,
-                      ).showSnackBar(SnackBar(
-                        duration: Duration(milliseconds: 300),
-                        content: Text("content added")));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          duration: Duration(milliseconds: 300),
+                          content: Text("content added"),
+                        ),
+                      );
+                      Navigator.pop(context);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.navBarIcon,
@@ -92,6 +108,7 @@ TextFormField transactionadd({
   required keyboardtype,
 }) {
   return TextFormField(
+    focusNode: FocusNode(),
     controller: mycontroller,
     keyboardType: keyboardtype,
     maxLines: null,

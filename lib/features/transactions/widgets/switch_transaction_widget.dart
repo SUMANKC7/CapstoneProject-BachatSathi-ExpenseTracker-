@@ -1,4 +1,3 @@
-
 import 'package:expensetrack/core/appcolors.dart';
 import 'package:expensetrack/features/transactions/provider/transaction_data_provider.dart';
 import 'package:flutter/material.dart';
@@ -9,24 +8,25 @@ class SwitchTransactionWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<TransactionDataProvider>(context);
+    final provider = Provider.of<TransactionDataProvider>(
+      context,
+      
+    );
     final toggleButton = provider.income;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          toggleButton? "Income" : "Expense",
+          toggleButton ? "Income" : "Expense",
           style: TextStyle(
             fontSize: 17,
-            color: toggleButton
-                ? AppColors.green
-                : AppColors.expenseColor,
+            color: toggleButton ? AppColors.green : AppColors.expenseColor,
           ),
         ),
         Switch(
-          value: toggleButton,
-          onChanged: (value) {
-            provider.switchExpense(value);
+          value: provider.income,
+          onChanged: (bool value) {
+            provider.isIncome(value);
           },
           activeColor: AppColors.green,
           inactiveThumbColor: AppColors.expenseColor,

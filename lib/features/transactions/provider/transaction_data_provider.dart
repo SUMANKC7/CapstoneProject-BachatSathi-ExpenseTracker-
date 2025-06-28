@@ -76,37 +76,98 @@ class TransactionDataProvider extends ChangeNotifier {
   //   super.dispose();
   // }
 
+  // final _amountController = TextEditingController();
+  // final _descriptionController = TextEditingController();
+  // bool _income = false;
+  // final DateTime _dateTime = DateTime.now();
+
+  // DateTime get dateTime => _dateTime;
+  // String get formattedDate => DateFormat("yyyy/mm/dd").format(_dateTime);
+  // TextEditingController get amountController => _amountController;
+  // TextEditingController get descriptionController => _descriptionController;
+  // bool get income => _income;
+
+  // final List<String> _categories = [
+  //   "Food",
+  //   "Entertainment",
+  //   "Shopping",
+  //   "Transportation",
+  //   "utilities",
+  // ];
+  // List<String> get categories => _categories;
+
+  // String _selectedCategory = "Category";
+  // String get selectedcategory => _selectedCategory;
+
+  // final firebasefirestore = FirebaseFirestore.instance;
+
+  // void selectcategory(String category) {
+  //   _selectedCategory = category;
+  //   notifyListeners();
+  // }
+
+  // void switchExpense(value) {
+  //   _income = value;
+  //   notifyListeners();
+  // }
+
+  // Future<void> addTransaction() async {
+  //   try {
+  //     final transactionData = TransactionModel(
+  //       amount: _amountController.text,
+  //       category: _selectedCategory,
+  //       date: formattedDate,
+  //       description: _descriptionController.text,
+  //       expense: _income,
+  //     );
+  //     await firebasefirestore
+  //         .collection("Transaction")
+  //         .add(transactionData.toMap());
+
+  //     //Clearing the data
+  //     _amountController.clear();
+  //     _descriptionController.clear();
+  //     _selectedCategory = "Category";
+  //     _income = false;
+
+  //   } catch (e) {
+  //     log("Error occurred :$e");
+  //   }
+
+  // }
+  // @override
+  // void dispose() {
+  //      _amountController.dispose();
+  //     _descriptionController.dispose();
+  //   super.dispose();
+  // }
+
+  final firebaseFirestore = FirebaseFirestore.instance;
+  final _titleController = TextEditingController();
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
   bool _income = false;
-  final DateTime _dateTime = DateTime.now();
-
-  DateTime get dateTime => _dateTime;
-  String get formattedDate => DateFormat("yyyy/mm/dd").format(_dateTime);
+  final DateTime _currentdate = DateTime.now();
+  String _selectedcategory = "categories";
+  
+  TextEditingController get titleController => _titleController;
   TextEditingController get amountController => _amountController;
   TextEditingController get descriptionController => _descriptionController;
+
+  String get formattedDate => DateFormat("yyyy/mm/dd").format(_currentdate);
   bool get income => _income;
 
-  final List<String> _categories = [
-    "Food",
-    "Entertainment",
-    "Shopping",
-    "Transportation",
-    "utilities",
-  ];
+  final List<String> _categories = ["Food", "Clothes", "Entertainment", "Game"];
+
   List<String> get categories => _categories;
+  String get selectedCategory => _selectedcategory;
 
-  String _selectedCategory = "Category";
-  String get selectedcategory => _selectedCategory;
-
-  final firebasefirestore = FirebaseFirestore.instance;
-
-  void selectcategory(String category) {
-    _selectedCategory = category;
+  void selectCategory(value) {
+    _selectedcategory = value;
     notifyListeners();
   }
 
-  void switchExpense(value) {
+  void isIncome(bool value) {
     _income = value;
     notifyListeners();
   }
@@ -115,30 +176,21 @@ class TransactionDataProvider extends ChangeNotifier {
     try {
       final transactionData = TransactionModel(
         amount: _amountController.text,
-        category: _selectedCategory,
+        category: _selectedcategory,
         date: formattedDate,
         description: _descriptionController.text,
         expense: _income,
+        title: _titleController.text,
       );
-      await firebasefirestore
-          .collection("Transaction")
-          .add(transactionData.toMap());
 
-      //Clearing the data
-      _amountController.clear();
-      _descriptionController.clear();
-      _selectedCategory = "Category";
-      _income = false;
-     
+      await firebaseFirestore
+          .collection("Transactions")
+          .doc("Transaction")
+          .set(transactionData.toMap());
+      log(transactionData.amount);
+      notifyListeners();
     } catch (e) {
-      log("Error occurred :$e");
+      log("some error occurred $e");
     }
-
-  }
-  @override
-  void dispose() {
-       _amountController.dispose();
-      _descriptionController.dispose();
-    super.dispose();
   }
 }
