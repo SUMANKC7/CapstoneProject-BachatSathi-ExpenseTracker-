@@ -5,8 +5,10 @@ class TransactionModel {
   final String date;
   final String description;
   final bool expense;
+  final String id;
 
-  TransactionModel({
+  TransactionModel( {
+    required this.id,
     required this.title,
     required this.amount,
     required this.category,
@@ -27,8 +29,9 @@ class TransactionModel {
     return result;
   }
 
-  factory TransactionModel.fromMap(Map<String, dynamic> map) {
+  factory TransactionModel.fromMap(Map<String, dynamic> map, String id) {
     return TransactionModel(
+      id: id,
       title: map["title"] ?? "",
       amount: map['amount'] ?? '',
       category: map['category'] ?? '',
