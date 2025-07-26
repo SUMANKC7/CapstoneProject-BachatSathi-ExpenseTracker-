@@ -8,21 +8,25 @@ class SpentTodayCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        Container(
-          height: MediaQuery.sizeOf(context).height * 0.22,
-          width: double.infinity,
-          decoration: BoxDecoration(
-        
-            gradient: LinearGradient(
-              colors: [
-                     Color(0xFFC8E6C9), // Light Green
-    Color(0xFFB3E5FC), // Pale Sky Blue
-              ],
-              // begin: Alignment.topLeft,
-              // end: Alignment.bottomRight
+        Material(
+          elevation: 6,
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            height: MediaQuery.sizeOf(context).height * 0.22,
+            width: double.infinity,
+            decoration: BoxDecoration(
+          
+              gradient: LinearGradient(
+                colors: [
+                       Color(0xFFC8E6C9), // Light Green
+              Color(0xFFB3E5FC), // Pale Sky Blue
+                ],
+                // begin: Alignment.topLeft,
+                // end: Alignment.bottomRight
+              ),
+              // color: AppColors.greenAccent,
+              borderRadius: BorderRadius.circular(20),
             ),
-            // color: AppColors.greenAccent,
-            borderRadius: BorderRadius.circular(20),
           ),
         ),
         Positioned(
