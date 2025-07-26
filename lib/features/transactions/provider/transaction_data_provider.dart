@@ -2,21 +2,14 @@ import 'dart:developer';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:expensetrack/features/transactions/model/transaction_model.dart';
-import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:intl/intl.dart';
 
 class TransactionDataProvider extends ChangeNotifier {
-  late final CollectionReference _firebaseFirestore;
-  late final DatabaseReference _getTransaction;
-  late final DatabaseReference newgetTransaction;
+  final CollectionReference _firebaseFirestore = FirebaseFirestore.instance
+      .collection("Transactions");
 
-  TransactionDataProvider()
-    : _firebaseFirestore = FirebaseFirestore.instance.collection(
-        "Transactions",
-      ),
-      _getTransaction = FirebaseDatabase.instance.ref("Transactions"),
-      newgetTransaction = FirebaseDatabase.instance.ref("Transactions").push();
+  TransactionDataProvider();
 
   List<TransactionModel> _transactions = [];
   final _titleController = TextEditingController();
@@ -31,7 +24,7 @@ class TransactionDataProvider extends ChangeNotifier {
   TextEditingController get amountController => _amountController;
   TextEditingController get descriptionController => _descriptionController;
 
-  String get formattedDate => DateFormat("yyyy/mm/dd").format(_currentdate);
+  String get formattedDate => DateFormat("yyyy/MM/dd").format(_currentdate);
   bool get income => _income;
 
   final List<String> _categories = ["Food", "Clothes", "Entertainment", "Game"];
@@ -61,7 +54,12 @@ class TransactionDataProvider extends ChangeNotifier {
         id: "",
       );
 
-      await _firebaseFirestore.add(transactionData.toMap());
+      final docRef = await _firebaseFirestore.add(transactionData.toMap());
+
+      //For creation of updated model with id
+      final updatedTransaction = transactionData.copyWith(id: docRef.id);
+      _transactions.add(updatedTransaction);
+
       _titleController.clear();
       _amountController.clear();
       _descriptionController.clear();
@@ -77,14 +75,14 @@ class TransactionDataProvider extends ChangeNotifier {
       final doc = await _firebaseFirestore.doc(transactionId).get();
       if (doc.exists) {
         return TransactionModel.fromMap(
-          doc.data() as Map<String ,dynamic>,
+          doc.data() as Map<String, dynamic>,
           doc.id,
         );
       }
       throw Exception('Transaction not found');
     } catch (e) {
       log("Error fetching transaction: $e");
-    rethrow;
+      rethrow;
     }
   }
 
@@ -100,6 +98,7 @@ class TransactionDataProvider extends ChangeNotifier {
     } catch (e) {
       log("Error $e");
     }
+    notifyListeners();
   }
 
   @override

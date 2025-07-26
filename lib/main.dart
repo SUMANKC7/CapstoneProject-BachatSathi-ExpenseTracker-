@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:expensetrack/all_provider.dart';
-import 'package:expensetrack/auth/screen/login_page.dart' show Loginpage;
 import 'package:expensetrack/features/home/screen/homescreen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';

@@ -16,6 +16,7 @@ class TransactionModel {
     required this.description,
     required this.expense,
   });
+  
 
   Map<String, dynamic> toMap() {
     final result = <String, dynamic>{};
@@ -38,6 +39,26 @@ class TransactionModel {
       date: map["date"] ?? "",
       description: map['description'] ?? '',
       expense: map['expense'] ?? false,
+    );
+  }
+
+  TransactionModel copyWith({
+    String? title,
+    String? amount,
+    String? category,
+    String? date,
+    String? description,
+    bool? expense,
+    String? id,
+  }) {
+    return TransactionModel(
+      title:title ?? this.title,
+     amount: amount ?? this.amount,
+     category: category ?? this.category,
+    date:  date ?? this.date,
+     description:  description ?? this.description,
+     expense:  expense ?? this.expense,
+     id: id ?? this.id,
     );
   }
 }
