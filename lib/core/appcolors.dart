@@ -29,4 +29,6 @@ class AppColors {
   static const Color transactiontype = Color(0xff4573A1);
   static final Color? expenseColor = Colors.red[200];
 
+  static final Color addIncome = Color(0xFF81C784);
+  static final Color addExpensee = Color(0xFFE57373);
 }
