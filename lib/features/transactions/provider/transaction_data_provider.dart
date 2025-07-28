@@ -48,7 +48,7 @@ class TransactionDataProvider extends ChangeNotifier {
         amount: _amountController.text,
         category: _selectedcategory,
         date: formattedDate,
-        description: _descriptionController.text,
+        remarks: _descriptionController.text,
         expense: _income,
         title: _titleController.text,
         id: "",

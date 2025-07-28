@@ -3,20 +3,19 @@ class TransactionModel {
   final String amount;
   final String category;
   final String date;
-  final String description;
+  final String remarks;
   final bool expense;
   final String id;
 
-  TransactionModel( {
+  TransactionModel({
     required this.id,
     required this.title,
     required this.amount,
     required this.category,
     required this.date,
-    required this.description,
+    required this.remarks,
     required this.expense,
   });
-  
 
   Map<String, dynamic> toMap() {
     final result = <String, dynamic>{};
@@ -24,7 +23,7 @@ class TransactionModel {
     result.addAll({'amount': amount});
     result.addAll({'category': category});
     result.addAll({'date': date});
-    result.addAll({'description': description});
+    result.addAll({'remarks': remarks});
     result.addAll({'expense': expense});
 
     return result;
@@ -37,7 +36,7 @@ class TransactionModel {
       amount: map['amount'] ?? '',
       category: map['category'] ?? '',
       date: map["date"] ?? "",
-      description: map['description'] ?? '',
+      remarks: map['remarks'] ?? '',
       expense: map['expense'] ?? false,
     );
   }
@@ -47,18 +46,18 @@ class TransactionModel {
     String? amount,
     String? category,
     String? date,
-    String? description,
+    String? remarks,
     bool? expense,
     String? id,
   }) {
     return TransactionModel(
-      title:title ?? this.title,
-     amount: amount ?? this.amount,
-     category: category ?? this.category,
-    date:  date ?? this.date,
-     description:  description ?? this.description,
-     expense:  expense ?? this.expense,
-     id: id ?? this.id,
+      title: title ?? this.title,
+      amount: amount ?? this.amount,
+      category: category ?? this.category,
+      date: date ?? this.date,
+      remarks: remarks ?? this.remarks,
+      expense: expense ?? this.expense,
+      id: id ?? this.id,
     );
   }
 }

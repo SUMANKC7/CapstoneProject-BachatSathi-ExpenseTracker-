@@ -21,7 +21,7 @@ class TransactionScreen extends StatelessWidget {
           "Transactions",
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
         ),
-        actions: [AddTransactionBottomsheet(), SizedBox(width: 6)],
+        // actions: [AddTransactionBottomsheet(), SizedBox(width: 6)],
       ),
       body: Stack(
         children: [
@@ -34,7 +34,7 @@ class TransactionScreen extends StatelessWidget {
                 spacing: 15,
                 children: [
                   TitleText(title: "Filters"),
-              
+
                   //For the time Filtering
                   Wrap(
                     direction: Axis.horizontal,
@@ -98,15 +98,47 @@ class TransactionScreen extends StatelessWidget {
               ),
             ),
           ),
-             Positioned(
-                bottom: 20,
-                left: 20,
-                child: IncomeExpenseAdd(buttoncolor: AppColors.addIncome, buttonicon: Icons.wallet, title: "Add Income",)
-                ),
-              Positioned(
-                bottom: 20,
-                right: 20,
-                child: IncomeExpenseAdd(buttoncolor: AppColors.addExpensee, buttonicon: Icons.wallet, title: "Add Expense",)),
+          Positioned(
+            bottom: 20,
+            left: 20,
+            child: IncomeExpenseAdd(
+              buttoncolor: AppColors.addIncome,
+              buttonicon: Icons.wallet,
+              title: "Add Income",
+              onbuttonPressed: () {
+                showModalBottomSheet(
+                  isScrollControlled: true,
+                  constraints: BoxConstraints.tight(
+                    Size(
+                      MediaQuery.sizeOf(context).width * 0.9,
+                      MediaQuery.sizeOf(context).height * 0.65,
+                    ),
+                  ),
+                  context: context,
+
+                  builder: (context) => AddTransactionBottomsheet(),
+                );
+              },
+            ),
+          ),
+          Positioned(
+            bottom: 20,
+            right: 20,
+            child: IncomeExpenseAdd(
+              buttoncolor: AppColors.addExpensee,
+              buttonicon: Icons.wallet,
+              title: "Add Expense",
+              onbuttonPressed: () {
+
+                showModalBottomSheet(
+                  isScrollControlled: true,
+                  constraints: BoxConstraints.tight(Size(double.infinity, MediaQuery.sizeOf(context).height * 0.65)),
+                  context: context,
+                  builder: (context) => AddTransactionBottomsheet(),
+                );
+              },
+            ),
+          ),
         ],
       ),
     );
@@ -117,7 +149,14 @@ class IncomeExpenseAdd extends StatelessWidget {
   final Color buttoncolor;
   final IconData buttonicon;
   final String title;
-  const IncomeExpenseAdd({super.key, required this.buttoncolor, required this.buttonicon, required this.title});
+  final VoidCallback onbuttonPressed;
+  const IncomeExpenseAdd({
+    super.key,
+    required this.buttoncolor,
+    required this.buttonicon,
+    required this.title,
+    required this.onbuttonPressed,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -128,11 +167,11 @@ class IncomeExpenseAdd extends StatelessWidget {
           maximumSize: Size.fromWidth(MediaQuery.sizeOf(context).width * 0.43),
           backgroundColor: buttoncolor,
         ),
-        onPressed: () {},
+        onPressed: onbuttonPressed,
         child: Row(
           children: [
             Icon(buttonicon),
-SizedBox(width: 2,),
+            SizedBox(width: 2),
             Flexible(
               child: FittedBox(
                 // fit: BoxFit.scaleDown,
