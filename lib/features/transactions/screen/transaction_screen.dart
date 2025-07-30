@@ -128,15 +128,21 @@ class TransactionScreen extends StatelessWidget {
               buttoncolor: AppColors.addExpensee,
               buttonicon: Icons.wallet,
               title: "Add Expense",
-              onbuttonPressed: () {
-
-                showModalBottomSheet(
-                  isScrollControlled: true,
-                  constraints: BoxConstraints.tight(Size(double.infinity, MediaQuery.sizeOf(context).height * 0.65)),
-                  context: context,
-                  builder: (context) => AddTransactionBottomsheet(),
-                );
-              },
+         onbuttonPressed: () {
+  showModalBottomSheet(
+    isScrollControlled: true,
+    context: context,
+    builder: (context) => Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.95,
+      ),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: AddTransactionBottomsheet(),
+    ),
+  );
+},
             ),
           ),
         ],

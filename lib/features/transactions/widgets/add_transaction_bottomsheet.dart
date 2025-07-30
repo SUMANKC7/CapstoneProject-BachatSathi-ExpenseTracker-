@@ -1,8 +1,6 @@
 import 'package:expensetrack/core/appcolors.dart';
 import 'package:expensetrack/features/transactions/provider/transaction_data_provider.dart';
 import 'package:expensetrack/features/transactions/widgets/add_dates.dart';
-import 'package:expensetrack/features/transactions/widgets/drop_down_widget.dart';
-import 'package:expensetrack/features/transactions/widgets/switch_transaction_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -17,93 +15,126 @@ class AddTransactionBottomsheet extends StatelessWidget {
     );
 
     return Padding(
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 0,
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: ListView(
+    padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(height: 20),
-          
           Row(
             children: [
- Expanded(
-   child: TextFormField(
-    maxLines: 1,
-    decoration: InputDecoration(
-    
-      hintText: "Expense Name",
-      hintStyle: TextStyle(
-        fontSize: 19,
-        fontWeight: FontWeight.w900,
-        color: Colors.grey.shade400
-      ),
-      border: InputBorder.none,
-      focusedBorder:InputBorder.none,
-      
-    ),
-    cursorColor: Colors.grey.shade400,
-   ),
- ),
+              Expanded(
+                child: TextFormField(
+                  autofocus: true,
+                  maxLines: 1,
+                  style: TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.black,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: "Expense Name",
+                    hintStyle: TextStyle(
+                      fontSize: 19,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.grey.shade400,
+                    ),
+                    border: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                  ),
+                  cursorColor: Colors.grey.shade400,
+                ),
+              ),
               IconButton(
                 onPressed: () {
                   Navigator.pop(context);
                 },
-                icon: Icon(Icons.close,size: 27,),
+                icon: Icon(Icons.close, size: 27),
               ),
-              
             ],
           ),
-          SizedBox(height: 20),
-     InputData(),
           
-
-          // transactionadd(
-          //   mycontroller: addTransactionProvider.titleController,
-          //   hinttext: 'Title',
-          //   keyboardtype: TextInputType.text,
-          // ),
-          // SizedBox(height: 20),
-          // transactionadd(
-          //   mycontroller: addTransactionProvider.amountController,
-          //   hinttext: "Amount",
-          //   keyboardtype: TextInputType.number,
-          // ),
-          // SizedBox(height: 20),
-          // DropDownWidget(),
-          // SizedBox(height: 20),
-          // AddDates(),
-          // SizedBox(height: 20),
-          // transactionadd(
-          //   mycontroller: addTransactionProvider.descriptionController,
-          //   hinttext: "Description",
-          //   keyboardtype: TextInputType.text,
-          // ),
-          // SizedBox(height: 20),
-          // SwitchTransactionWidget(),
-          // SizedBox(height: 40),
-          // ElevatedButton(
-          //   onPressed: () {
-          //     addTransactionProvider.addTransaction();
-          //     ScaffoldMessenger.of(context).showSnackBar(
-          //       SnackBar(
-          //         duration: Duration(milliseconds: 300),
-          //         content: Text("content added"),
-          //       ),
-          //     );
-          //     Navigator.pop(context);
-          //   },
-          //   style: ElevatedButton.styleFrom(
-          //     backgroundColor: AppColors.navBarIcon,
-          //     fixedSize: Size.fromWidth(double.maxFinite),
-          //   ),
-            // child: Text(
-            //   "Save",
-            //   style: TextStyle(color: AppColors.summaryBorder),
-            // ),
-          // ),
+          InputData(),
+          AddDates(),
+      
+          SizedBox(height: 20),
+      
+          Text(
+            "Select Category",
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 2,
+              color: Colors.grey.shade400,
+            ),
+          ),
+      
+          SizedBox(height: 15),
+      
+          Wrap(
+            spacing: 10,
+            runSpacing: 3,
+            children: List.generate(addTransactionProvider.categories.length, (index) {
+              return IntrinsicWidth(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        color: AppColors.filterColor,
+                      ),
+                      child: Center(
+                        child: Text(
+                          addTransactionProvider.categories[index],
+                          style: TextStyle(
+                            color: AppColors.filterTextColor,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                    
+                    if(index == addTransactionProvider.categories.length-1)
+                      Padding(
+                        padding: EdgeInsets.only(left: 12),
+                        child: Container(
+                          height: MediaQuery.sizeOf(context).height*0.07,
+                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.green.shade400,
+                          ),
+                          child: Icon(
+                            Icons.add,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            }),
+          ),
+          SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: (){},
+            style: FilledButton.styleFrom(
+              minimumSize: Size.fromHeight(MediaQuery.sizeOf(context).height*0.06),
+              backgroundColor: Colors.red.shade300,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10)
+              )
+            ),
+            child: Text("Add Expense",style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: AppColors.backgroundColor
+            ),)
+          ),
+SizedBox(height: 30,)
         ],
       ),
     );
@@ -111,53 +142,41 @@ class AddTransactionBottomsheet extends StatelessWidget {
 }
 
 class InputData extends StatelessWidget {
-  const InputData({
-    super.key,
-  });
+  const InputData({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-     padding: EdgeInsets.only(right: 13),
+      padding: EdgeInsets.only(right: 13),
       child: TextFormField(
-       
-       keyboardType: TextInputType.number,
-          maxLines: 1,
-          style: TextStyle(
-           fontSize: 19,
-           fontWeight: FontWeight.w900,
-           letterSpacing: 2
+        keyboardType: TextInputType.number,
+        maxLines: 1,
+        style: TextStyle(
+          fontSize: 19,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 2,
+        ),
+        decoration: InputDecoration(
+          labelText: "Amount",
+          labelStyle: TextStyle(color: Colors.grey.shade400, fontSize: 19),
+          prefixText: "\$ ",
+
+          hintText: "Amount",
+          hintStyle: TextStyle(
+            fontSize: 19,
+            fontWeight: FontWeight.w900,
+            color: Colors.grey.shade400,
           ),
-          decoration: InputDecoration(
-           labelText: "Amount",
-           labelStyle: TextStyle(
-             color: Colors.grey.shade400,fontSize: 19
-           ),
-       prefixText:"\$ ",
-    
-       hintText: "Amount",
-       hintStyle: TextStyle(
-         
-         fontSize: 19,
-         fontWeight: FontWeight.w900,
-         color: Colors.grey.shade400
-       ),
-       
-       enabledBorder: UnderlineInputBorder(
-        borderSide: BorderSide(
-     color: Colors.grey.shade400,width: 1
-        )
-       ),
-       focusedBorder: UnderlineInputBorder(
-        borderSide: BorderSide(
-     color: Colors.grey.shade400,
-     width: 1.5
-        )
-       )
-       
+
+          enabledBorder: UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.grey.shade400, width: 1),
           ),
-          cursorColor: Colors.grey.shade400,
-         ),
+          focusedBorder: UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.grey.shade400, width: 1.5),
+          ),
+        ),
+        cursorColor: Colors.grey.shade400,
+      ),
     );
   }
 }

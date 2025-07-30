@@ -1,9 +1,9 @@
 import 'dart:developer';
 
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:expensetrack/features/transactions/model/transaction_model.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:intl/intl.dart';
+import 'package:flutter/material.dart';
 
 class TransactionDataProvider extends ChangeNotifier {
   final CollectionReference _firebaseFirestore = FirebaseFirestore.instance
@@ -16,18 +16,19 @@ class TransactionDataProvider extends ChangeNotifier {
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
   bool _income = false;
-  final DateTime _currentdate = DateTime.now();
+  String _selectedDate = "Date";
   String _selectedcategory = "categories";
 
+  String get selectedDate => _selectedDate;
   List<TransactionModel> get transactions => _transactions;
   TextEditingController get titleController => _titleController;
   TextEditingController get amountController => _amountController;
   TextEditingController get descriptionController => _descriptionController;
 
-  String get formattedDate => DateFormat("yyyy/MM/dd").format(_currentdate);
+  // String get formattedDate => DateFormat("yyyy/MM/dd").format(_currentdate);
   bool get income => _income;
 
-  final List<String> _categories = ["Food", "Clothes", "Entertainment", "Game"];
+  final List<String> _categories = ["Food", "Clothes", "Game","Rent","Entertainment"];
 
   List<String> get categories => _categories;
   String get selectedCategory => _selectedcategory;
@@ -42,12 +43,27 @@ class TransactionDataProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> pickDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2060),
+    );
+  
+
+   if (picked != null) {
+    _selectedDate = picked.toString();
+    notifyListeners();
+  }
+    
+  }
+
   Future<void> addTransaction() async {
     try {
       final transactionData = TransactionModel(
         amount: _amountController.text,
         category: _selectedcategory,
-        date: formattedDate,
+        date: _selectedDate,
         remarks: _descriptionController.text,
         expense: _income,
         title: _titleController.text,
