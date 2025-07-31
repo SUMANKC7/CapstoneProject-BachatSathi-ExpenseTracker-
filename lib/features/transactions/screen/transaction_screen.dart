@@ -98,6 +98,7 @@ class TransactionScreen extends StatelessWidget {
               ),
             ),
           ),
+
           Positioned(
             bottom: 20,
             left: 20,
@@ -106,18 +107,19 @@ class TransactionScreen extends StatelessWidget {
               buttonicon: Icons.wallet,
               title: "Add Income",
               onbuttonPressed: () {
-                showModalBottomSheet(
-                  isScrollControlled: true,
-                  constraints: BoxConstraints.tight(
-                    Size(
-                      MediaQuery.sizeOf(context).width * 0.9,
-                      MediaQuery.sizeOf(context).height * 0.65,
-                    ),
-                  ),
-                  context: context,
-
-                  builder: (context) => AddTransactionBottomsheet(),
-                );
+  showModalBottomSheet(
+    isScrollControlled: true,
+    context: context,
+    builder: (context) => Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.95,
+      ),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: AddTransactionBottomsheet(transactionName: 'Income Name',),
+    ),
+  );
               },
             ),
           ),
@@ -139,7 +141,7 @@ class TransactionScreen extends StatelessWidget {
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
-      child: AddTransactionBottomsheet(),
+      child: AddTransactionBottomsheet(transactionName: 'Expense Name',),
     ),
   );
 },

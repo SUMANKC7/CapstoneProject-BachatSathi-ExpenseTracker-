@@ -1,6 +1,5 @@
 import 'dart:developer';
 
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:expensetrack/features/transactions/model/transaction_model.dart';
 import 'package:flutter/material.dart';
@@ -28,9 +27,23 @@ class TransactionDataProvider extends ChangeNotifier {
   // String get formattedDate => DateFormat("yyyy/MM/dd").format(_currentdate);
   bool get income => _income;
 
-  final List<String> _categories = ["Food", "Clothes", "Game","Rent","Entertainment"];
+  final List<String> _expensecategories = [
+    "Food",
+    "Clothes",
+    "Game",
+    "Rent",
+    "Entertainment",
+  ];
+  final List<String> _incomecategories = [
+    "Salary",
+    "Investment",
+    "Comission",
+    "Intrest",
+    "Gift",
+  ];
 
-  List<String> get categories => _categories;
+  List<String> get expensecategories => _expensecategories;
+  List<String> get incomecategories => _incomecategories;
   String get selectedCategory => _selectedcategory;
 
   void selectCategory(value) {
@@ -49,13 +62,11 @@ class TransactionDataProvider extends ChangeNotifier {
       firstDate: DateTime(2000),
       lastDate: DateTime(2060),
     );
-  
 
-   if (picked != null) {
-    _selectedDate = picked.toString();
-    notifyListeners();
-  }
-    
+    if (picked != null) {
+      _selectedDate = picked.toString();
+      notifyListeners();
+    }
   }
 
   Future<void> addTransaction() async {

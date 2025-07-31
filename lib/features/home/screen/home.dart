@@ -1,5 +1,6 @@
 import 'package:expensetrack/core/widgets/title_text.dart';
 import 'package:expensetrack/features/home/widgets/expense_tile.dart';
+import 'package:expensetrack/features/home/widgets/income_expense_toggle.dart';
 import 'package:expensetrack/features/home/widgets/myappbar.dart';
 import 'package:expensetrack/features/home/widgets/receive_gain_widget.dart';
 import 'package:expensetrack/features/home/widgets/spent_today_card.dart';
@@ -22,9 +23,9 @@ class Home extends StatelessWidget {
               TitleText(title: 'Today'),
 
               SpentTodayCard(),
-              SizedBox(height: 1),
+              
               Row(
-                spacing: 20,
+                spacing: 15,
                 children: [
                   RecieveGive(
                     amount: "\$100",
@@ -41,17 +42,19 @@ class Home extends StatelessWidget {
 
               TitleText(title: "This month"),
 
-              ExpenseTile(
-                title: 'Income',
-                amount: '\$6000',
-                image: 'assets/images/pic.jpg',
-              ),
+              const IncomeExpenseToggle(),
 
-              ExpenseTile(
-                title: 'Expenses',
-                amount: '\$3200',
-                image: 'assets/images/expense.jpg',
-              ),
+              // ExpenseTile(
+              //   title: 'Income',
+              //   amount: '\$6000',
+              //   image: 'assets/images/pic.jpg',
+              // ),
+
+              // ExpenseTile(
+              //   title: 'Expenses',
+              //   amount: '\$3200',
+              //   image: 'assets/images/expense.jpg',
+              // ),
               SizedBox(height: 14),
             ],
           ),

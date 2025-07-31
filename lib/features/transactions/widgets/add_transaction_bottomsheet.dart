@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 class AddTransactionBottomsheet extends StatelessWidget {
-  const AddTransactionBottomsheet({super.key});
+  final String transactionName;
+
+  const AddTransactionBottomsheet({super.key, required this.transactionName});
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +35,7 @@ class AddTransactionBottomsheet extends StatelessWidget {
                     color: Colors.black,
                   ),
                   decoration: InputDecoration(
-                    hintText: "Expense Name",
+                    hintText: transactionName,
                     hintStyle: TextStyle(
                       fontSize: 19,
                       fontWeight: FontWeight.w900,
@@ -74,7 +76,7 @@ class AddTransactionBottomsheet extends StatelessWidget {
           Wrap(
             spacing: 10,
             runSpacing: 3,
-            children: List.generate(addTransactionProvider.categories.length, (index) {
+            children: List.generate(addTransactionProvider.expensecategories.length, (index) {
               return IntrinsicWidth(
                 child: Row(
                   children: [
@@ -86,7 +88,7 @@ class AddTransactionBottomsheet extends StatelessWidget {
                       ),
                       child: Center(
                         child: Text(
-                          addTransactionProvider.categories[index],
+                          addTransactionProvider.expensecategories[index],
                           style: TextStyle(
                             color: AppColors.filterTextColor,
                             fontSize: 16,
@@ -96,7 +98,7 @@ class AddTransactionBottomsheet extends StatelessWidget {
                       ),
                     ),
                     
-                    if(index == addTransactionProvider.categories.length-1)
+                    if(index == addTransactionProvider.expensecategories.length-1)
                       Padding(
                         padding: EdgeInsets.only(left: 12),
                         child: Container(
