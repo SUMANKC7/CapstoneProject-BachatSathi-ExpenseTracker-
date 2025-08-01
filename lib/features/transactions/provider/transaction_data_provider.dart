@@ -16,7 +16,8 @@ class TransactionDataProvider extends ChangeNotifier {
   final _descriptionController = TextEditingController();
   bool _income = false;
   String _selectedDate = "Date";
-  String _selectedcategory = "categories";
+  String _expenseselectedcategory = "categories";
+  String _incomeselectedcategory = "categories";
 
   String get selectedDate => _selectedDate;
   List<TransactionModel> get transactions => _transactions;
@@ -44,10 +45,16 @@ class TransactionDataProvider extends ChangeNotifier {
 
   List<String> get expensecategories => _expensecategories;
   List<String> get incomecategories => _incomecategories;
-  String get selectedCategory => _selectedcategory;
+  String get expenseselectedcategory => _expenseselectedcategory;
+  String get incomeselectedcategory => _incomeselectedcategory;
 
-  void selectCategory(value) {
-    _selectedcategory = value;
+  void selectexpenseCategory(value) {
+    _expenseselectedcategory = value;
+    notifyListeners();
+  }
+
+  void selectincomeCategory(value) {
+    _incomeselectedcategory = value;
     notifyListeners();
   }
 
@@ -73,7 +80,7 @@ class TransactionDataProvider extends ChangeNotifier {
     try {
       final transactionData = TransactionModel(
         amount: _amountController.text,
-        category: _selectedcategory,
+        category: _expenseselectedcategory,
         date: _selectedDate,
         remarks: _descriptionController.text,
         expense: _income,
