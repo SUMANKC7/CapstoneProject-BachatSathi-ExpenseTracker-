@@ -1,4 +1,6 @@
+import 'package:expensetrack/features/home/provider/switch_expense.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class IncomeExpenseToggle extends StatefulWidget {
   const IncomeExpenseToggle({super.key});
@@ -8,10 +10,9 @@ class IncomeExpenseToggle extends StatefulWidget {
 }
 
 class _IncomeExpenseToggleState extends State<IncomeExpenseToggle> {
-  int selectedIndex = 1; // 0 = Income, 1 = Expense
-
   @override
   Widget build(BuildContext context) {
+    final toggleprovider = context.watch<SwitchExpenseProvider>();
     return Container(
       height: 40,
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -22,13 +23,11 @@ class _IncomeExpenseToggleState extends State<IncomeExpenseToggle> {
       ),
       child: Row(
         children: List.generate(2, (index) {
-          final isSelected = selectedIndex == index;
+          final isSelected = toggleprovider.selectedIndex == index;
           return Expanded(
             child: GestureDetector(
               onTap: () {
-                setState(() {
-                  selectedIndex = index;
-                });
+                toggleprovider.toggleIndex(index);
               },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),

@@ -1,10 +1,12 @@
 import 'package:expensetrack/core/widgets/title_text.dart';
-import 'package:expensetrack/features/home/widgets/expense_tile.dart';
+import 'package:expensetrack/features/home/provider/switch_expense.dart';
 import 'package:expensetrack/features/home/widgets/income_expense_toggle.dart';
 import 'package:expensetrack/features/home/widgets/myappbar.dart';
 import 'package:expensetrack/features/home/widgets/receive_gain_widget.dart';
 import 'package:expensetrack/features/home/widgets/spent_today_card.dart';
+import 'package:expensetrack/features/transactions/widgets/transaction_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class Home extends StatelessWidget {
   const Home({super.key});
@@ -43,6 +45,35 @@ class Home extends StatelessWidget {
               TitleText(title: "This month"),
 
               const IncomeExpenseToggle(),
+Consumer<SwitchExpenseProvider>(
+  builder: (BuildContext context, value, Widget? child) { 
+    
+    return Column(
+      children: [
+        value.selectedIndex==0?
+ Column(
+  children: [
+     TransactionsWidgets(icon: Icons.bus_alert_outlined, title: "Public Transport", subtitle: "May 5th 14:28", cost: "\$124.20"),
+                TransactionsWidgets(icon: Icons.bus_alert_outlined, title: "Public Transport", subtitle: "May 5th 14:28", cost: "\$124.20"),
+                  TransactionsWidgets(icon: Icons.bus_alert_outlined, title: "Public Transport", subtitle: "May 5th 14:28", cost: "\$124.20"),
+                    TransactionsWidgets(icon: Icons.bus_alert_outlined, title: "Public Transport", subtitle: "May 5th 14:28", cost: "\$124.20"),
+                      TransactionsWidgets(icon: Icons.bus_alert_outlined, title: "Public Transport", subtitle: "May 5th 14:28", cost: "\$124.20"),
+  ],
+ ):Column(
+  children: [
+         TransactionsWidgets(icon: Icons.money, title: "Public Transport", subtitle: "May 5th 14:28", cost: "\$124.20"),
+                TransactionsWidgets(icon: Icons.money, title: "Public Transport", subtitle: "May 5th 14:28", cost: "\$124.20"),
+                  TransactionsWidgets(icon: Icons.money, title: "Public Transport", subtitle: "May 5th 14:28", cost: "\$124.20"),
+                    TransactionsWidgets(icon: Icons.money, title: "Public Transport", subtitle: "May 5th 14:28", cost: "\$124.20"),
+                      TransactionsWidgets(icon: Icons.money, title: "Public Transport", subtitle: "May 5th 14:28", cost: "\$124.20"),
+  ],
+ )
+      ]
+            
+);
+ },
+ ),
+
 
               // ExpenseTile(
               //   title: 'Income',
