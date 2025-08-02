@@ -107,19 +107,22 @@ class TransactionScreen extends StatelessWidget {
               buttonicon: Icons.wallet,
               title: "Add Income",
               onbuttonPressed: () {
-  showModalBottomSheet(
-    isScrollControlled: true,
-    context: context,
-    builder: (context) => Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.95,
-      ),
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: AddTransactionBottomsheet(transactionName: 'Income Name',),
-    ),
-  );
+                showModalBottomSheet(
+                  isScrollControlled: true,
+                  context: context,
+                  builder: (context) => Container(
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.of(context).size.height * 0.95,
+                    ),
+                    padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(context).viewInsets.bottom,
+                    ),
+                    child: AddTransactionBottomsheet(
+                      transactionName: 'Income Name',
+                      itemkey: 0,
+                    ),
+                  ),
+                );
               },
             ),
           ),
@@ -130,21 +133,24 @@ class TransactionScreen extends StatelessWidget {
               buttoncolor: AppColors.addExpensee,
               buttonicon: Icons.wallet,
               title: "Add Expense",
-         onbuttonPressed: () {
-  showModalBottomSheet(
-    isScrollControlled: true,
-    context: context,
-    builder: (context) => Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.95,
-      ),
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: AddTransactionBottomsheet(transactionName: 'Expense Name',),
-    ),
-  );
-},
+              onbuttonPressed: () {
+                showModalBottomSheet(
+                  isScrollControlled: true,
+                  context: context,
+                  builder: (context) => Container(
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.of(context).size.height * 0.95,
+                    ),
+                    padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(context).viewInsets.bottom,
+                    ),
+                    child: AddTransactionBottomsheet(
+                      transactionName: 'Expense Name',
+                      itemkey: 1,
+                    ),
+                  ),
+                );
+              },
             ),
           ),
         ],

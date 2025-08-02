@@ -6,8 +6,13 @@ import 'package:provider/provider.dart';
 
 class AddTransactionBottomsheet extends StatelessWidget {
   final String transactionName;
+  final int itemkey;
 
-  const AddTransactionBottomsheet({super.key, required this.transactionName});
+  const AddTransactionBottomsheet({
+    super.key,
+    required this.transactionName,
+    required this.itemkey,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -15,9 +20,10 @@ class AddTransactionBottomsheet extends StatelessWidget {
       context,
       listen: false,
     );
+    int currentkey = itemkey;
 
     return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -55,12 +61,12 @@ class AddTransactionBottomsheet extends StatelessWidget {
               ),
             ],
           ),
-          
+
           InputData(),
           AddDates(),
-      
+
           SizedBox(height: 20),
-      
+
           Text(
             "Select Category",
             style: TextStyle(
@@ -70,73 +76,95 @@ class AddTransactionBottomsheet extends StatelessWidget {
               color: Colors.grey.shade400,
             ),
           ),
-      
+
           SizedBox(height: 15),
-      
+
           Wrap(
             spacing: 10,
-            runSpacing: 3,
-            children: List.generate(addTransactionProvider.expensecategories.length, (index) {
-              return IntrinsicWidth(
-                child: Row(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        color: AppColors.filterColor,
-                      ),
-                      child: Center(
-                        child: Text(
-                          addTransactionProvider.expensecategories[index],
-                          style: TextStyle(
-                            color: AppColors.filterTextColor,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
+            runSpacing: 5,
+            children: List.generate(
+              currentkey == 0
+                  ? addTransactionProvider.incomecategories.length
+                  : addTransactionProvider.expensecategories.length,
+              (index) {
+                return IntrinsicWidth(
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          color: AppColors.filterColor,
+                        ),
+                        child: Center(
+                          child: Text(
+                            currentkey == 0
+                                ? addTransactionProvider.incomecategories[index]
+                                : addTransactionProvider
+                                      .expensecategories[index],
+                            style: TextStyle(
+                              color: AppColors.filterTextColor,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    
-                    if(index == addTransactionProvider.expensecategories.length-1)
-                      Padding(
-                        padding: EdgeInsets.only(left: 12),
-                        child: Container(
-                          height: MediaQuery.sizeOf(context).height*0.07,
-                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.green.shade400,
-                          ),
-                          child: Icon(
-                            Icons.add,
-                            color: Colors.white,
-                            size: 20,
+
+                      if (index ==
+                          addTransactionProvider.expensecategories.length - 1)
+                        Padding(
+                          padding: EdgeInsets.only(left: 12),
+                          child: Container(
+                            height: MediaQuery.sizeOf(context).height * 0.07,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.green.shade400,
+                            ),
+                            child: Icon(
+                              Icons.add,
+                              color: Colors.white,
+                              size: 20,
+                            ),
                           ),
                         ),
-                      ),
-                  ],
-                ),
-              );
-            }),
+                    ],
+                  ),
+                );
+              },
+            ),
           ),
           SizedBox(height: 20),
           ElevatedButton(
-            onPressed: (){},
+            onPressed: () {},
             style: FilledButton.styleFrom(
-              minimumSize: Size.fromHeight(MediaQuery.sizeOf(context).height*0.06),
-              backgroundColor: Colors.red.shade300,
+              minimumSize: Size.fromHeight(
+                MediaQuery.sizeOf(context).height * 0.06,
+              ),
+              backgroundColor: currentkey == 0
+                  ? Colors.green.shade300
+                  : Colors.red.shade300,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10)
-              )
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
-            child: Text("Add Expense",style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: AppColors.backgroundColor
-            ),)
+            child: Text(
+              currentkey == 0 ? 'Add Income' : "Add Expense",
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: AppColors.backgroundColor,
+              ),
+            ),
           ),
-SizedBox(height: 30,)
+          SizedBox(height: 30),
         ],
       ),
     );
