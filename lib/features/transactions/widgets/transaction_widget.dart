@@ -17,14 +17,11 @@ class TransactionsWidgets extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      
       contentPadding: EdgeInsets.zero,
       shape: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(
-          color: AppColors.transactiontype
-        )
-        ),
+        borderSide: BorderSide(color: Colors.grey.shade300),
+      ),
       leading: Padding(
         padding: const EdgeInsets.only(left: 10),
         child: Container(
@@ -33,7 +30,7 @@ class TransactionsWidgets extends StatelessWidget {
           // height: size.height * 0.06,
           // width: size.width * 0.13,
           constraints: BoxConstraints(minWidth: 50),
-        
+
           decoration: BoxDecoration(
             color: AppColors.filterColor,
             borderRadius: BorderRadius.circular(10),
