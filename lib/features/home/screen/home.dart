@@ -1,5 +1,6 @@
 import 'package:expensetrack/core/widgets/title_text.dart';
 import 'package:expensetrack/features/home/provider/switch_expense.dart';
+import 'package:expensetrack/features/entity/screen/addentity.dart';
 import 'package:expensetrack/features/home/widgets/income_expense_toggle.dart';
 import 'package:expensetrack/features/home/widgets/myappbar.dart';
 import 'package:expensetrack/features/home/widgets/receive_gain_widget.dart';
@@ -25,14 +26,19 @@ class Home extends StatelessWidget {
               TitleText(title: 'Today'),
 
               SpentTodayCard(),
-              
+
               Row(
                 spacing: 15,
                 children: [
                   RecieveGive(
                     amount: "\$100",
                     account: 'To Receive',
-                    onClicked: () {},
+                    onClicked: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => AddEntity()),
+                      );
+                    },
                   ),
                   RecieveGive(
                     amount: "\$200",
@@ -45,35 +51,83 @@ class Home extends StatelessWidget {
               TitleText(title: "This month"),
 
               const IncomeExpenseToggle(),
-Consumer<SwitchExpenseProvider>(
-  builder: (BuildContext context, value, Widget? child) { 
-    
-    return Column(
-      children: [
-        value.selectedIndex==0?
- Column(
-  children: [
-     TransactionsWidgets(icon: Icons.bus_alert_outlined, title: "Public Transport", subtitle: "May 5th 14:28", cost: "\$124.20"),
-                TransactionsWidgets(icon: Icons.bus_alert_outlined, title: "Public Transport", subtitle: "May 5th 14:28", cost: "\$124.20"),
-                  TransactionsWidgets(icon: Icons.bus_alert_outlined, title: "Public Transport", subtitle: "May 5th 14:28", cost: "\$124.20"),
-                    TransactionsWidgets(icon: Icons.bus_alert_outlined, title: "Public Transport", subtitle: "May 5th 14:28", cost: "\$124.20"),
-                      TransactionsWidgets(icon: Icons.bus_alert_outlined, title: "Public Transport", subtitle: "May 5th 14:28", cost: "\$124.20"),
-  ],
- ):Column(
-  children: [
-         TransactionsWidgets(icon: Icons.money, title: "Public Transport", subtitle: "May 5th 14:28", cost: "\$124.20"),
-                TransactionsWidgets(icon: Icons.money, title: "Public Transport", subtitle: "May 5th 14:28", cost: "\$124.20"),
-                  TransactionsWidgets(icon: Icons.money, title: "Public Transport", subtitle: "May 5th 14:28", cost: "\$124.20"),
-                    TransactionsWidgets(icon: Icons.money, title: "Public Transport", subtitle: "May 5th 14:28", cost: "\$124.20"),
-                      TransactionsWidgets(icon: Icons.money, title: "Public Transport", subtitle: "May 5th 14:28", cost: "\$124.20"),
-  ],
- )
-      ]
-            
-);
- },
- ),
-
+              Consumer<SwitchExpenseProvider>(
+                builder: (BuildContext context, value, Widget? child) {
+                  return Column(
+                    children: [
+                      value.selectedIndex == 0
+                          ? Column(
+                              children: [
+                                TransactionsWidgets(
+                                  icon: Icons.bus_alert_outlined,
+                                  title: "Public Transport",
+                                  subtitle: "May 5th 14:28",
+                                  cost: "\$124.20",
+                                ),
+                                TransactionsWidgets(
+                                  icon: Icons.bus_alert_outlined,
+                                  title: "Public Transport",
+                                  subtitle: "May 5th 14:28",
+                                  cost: "\$124.20",
+                                ),
+                                TransactionsWidgets(
+                                  icon: Icons.bus_alert_outlined,
+                                  title: "Public Transport",
+                                  subtitle: "May 5th 14:28",
+                                  cost: "\$124.20",
+                                ),
+                                TransactionsWidgets(
+                                  icon: Icons.bus_alert_outlined,
+                                  title: "Public Transport",
+                                  subtitle: "May 5th 14:28",
+                                  cost: "\$124.20",
+                                ),
+                                TransactionsWidgets(
+                                  icon: Icons.bus_alert_outlined,
+                                  title: "Public Transport",
+                                  subtitle: "May 5th 14:28",
+                                  cost: "\$124.20",
+                                ),
+                              ],
+                            )
+                          : Column(
+                              children: [
+                                TransactionsWidgets(
+                                  icon: Icons.money,
+                                  title: "Public Transport",
+                                  subtitle: "May 5th 14:28",
+                                  cost: "\$124.20",
+                                ),
+                                TransactionsWidgets(
+                                  icon: Icons.money,
+                                  title: "Public Transport",
+                                  subtitle: "May 5th 14:28",
+                                  cost: "\$124.20",
+                                ),
+                                TransactionsWidgets(
+                                  icon: Icons.money,
+                                  title: "Public Transport",
+                                  subtitle: "May 5th 14:28",
+                                  cost: "\$124.20",
+                                ),
+                                TransactionsWidgets(
+                                  icon: Icons.money,
+                                  title: "Public Transport",
+                                  subtitle: "May 5th 14:28",
+                                  cost: "\$124.20",
+                                ),
+                                TransactionsWidgets(
+                                  icon: Icons.money,
+                                  title: "Public Transport",
+                                  subtitle: "May 5th 14:28",
+                                  cost: "\$124.20",
+                                ),
+                              ],
+                            ),
+                    ],
+                  );
+                },
+              ),
 
               // ExpenseTile(
               //   title: 'Income',

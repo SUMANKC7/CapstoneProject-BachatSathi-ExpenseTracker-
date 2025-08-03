@@ -34,17 +34,27 @@ class TransactionScreen extends StatelessWidget {
                 spacing: 15,
                 children: [
                   TitleText(title: "Filters"),
-
-                  //For the time Filtering
                   Wrap(
                     direction: Axis.horizontal,
                     runSpacing: 10,
                     spacing: 13,
                     children: [
-                      FilterTime(filterdate: "Last 7 days"),
-                      FilterTime(filterdate: "This month"),
-                      FilterTime(filterdate: "Last month"),
-                      FilterTime(filterdate: "Custom"),
+                      SizedBox(
+                        width: MediaQuery.sizeOf(context).width * 0.3,
+                        child: FilterTime(filterdate: "Last 7 days"),
+                      ),
+                      SizedBox(
+                        width: MediaQuery.sizeOf(context).width * 0.3,
+                        child: FilterTime(filterdate: "This month"),
+                      ),
+                      SizedBox(
+                        width: MediaQuery.sizeOf(context).width * 0.3,
+                        child: FilterTime(filterdate: "Last month"),
+                      ),
+                      SizedBox(
+                        width: MediaQuery.sizeOf(context).width * 0.3,
+                        child: FilterTime(filterdate: "Custom"),
+                      ),
                     ],
                   ),
                   TitleText(title: "Summary"),

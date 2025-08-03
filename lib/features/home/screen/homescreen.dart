@@ -1,7 +1,6 @@
-
 import 'package:expensetrack/core/appcolors.dart';
 import 'package:expensetrack/features/budget/screen/budget_screen.dart';
-import 'package:expensetrack/features/goals/screen/goal_screen.dart';
+import 'package:expensetrack/features/entity/screen/addentity.dart';
 import 'package:expensetrack/features/home/provider/bottom_nav_provider.dart';
 import 'package:expensetrack/features/home/screen/home.dart';
 import 'package:expensetrack/features/settings/screen/settings_screen.dart';
@@ -17,17 +16,15 @@ class Homescreen extends StatefulWidget {
 }
 
 class _HomescreenState extends State<Homescreen> {
-
   final List<Widget> _screens = [
     Home(),
     TransactionScreen(),
     BudgetScreen(),
-    GoalScreen(),
+    AddEntity(),
     SettingsScreen(),
-    ];
+  ];
   @override
   Widget build(BuildContext context) {
-
     final navProvider = Provider.of<BottomNavProvider>(context);
 
     return Scaffold(
@@ -47,8 +44,14 @@ class _HomescreenState extends State<Homescreen> {
             icon: Icon(Icons.stacked_bar_chart_rounded),
             label: "Budget",
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.emoji_events_outlined),label: "Goal"),
-          BottomNavigationBarItem(icon: Icon(Icons.settings_outlined),label: "Settings")
+          BottomNavigationBarItem(
+            icon: Icon(Icons.emoji_events_outlined),
+            label: "Goal",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings_outlined),
+            label: "Settings",
+          ),
         ],
       ),
     );
