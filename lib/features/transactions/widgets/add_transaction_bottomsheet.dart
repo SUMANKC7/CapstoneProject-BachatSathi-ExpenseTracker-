@@ -16,6 +16,7 @@ class AddTransactionBottomsheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final TextEditingController amountController = TextEditingController();
     final addTransactionProvider = Provider.of<TransactionDataProvider>(
       context,
       listen: false,
@@ -62,7 +63,7 @@ class AddTransactionBottomsheet extends StatelessWidget {
             ],
           ),
 
-          InputData(),
+          InputData(amountcontroller: amountController),
           AddDates(),
 
           SizedBox(height: 20),
@@ -172,7 +173,8 @@ class AddTransactionBottomsheet extends StatelessWidget {
 }
 
 class InputData extends StatelessWidget {
-  const InputData({super.key});
+  final TextEditingController amountcontroller;
+  const InputData({super.key, required this.amountcontroller});
 
   @override
   Widget build(BuildContext context) {
@@ -190,6 +192,7 @@ class InputData extends StatelessWidget {
           labelText: "Amount",
           labelStyle: TextStyle(color: Colors.grey.shade400, fontSize: 19),
           prefixText: "\$ ",
+          prefixIconColor: AppColors.navBarSelected,
 
           hintText: "Amount",
           hintStyle: TextStyle(

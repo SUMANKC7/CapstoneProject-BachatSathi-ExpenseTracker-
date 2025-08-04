@@ -15,11 +15,10 @@ class SpentTodayCard extends StatelessWidget {
             height: MediaQuery.sizeOf(context).height * 0.22,
             width: double.infinity,
             decoration: BoxDecoration(
-          
               gradient: LinearGradient(
                 colors: [
-                       Color(0xFFC8E6C9), // Light Green
-              Color(0xFFB3E5FC), // Pale Sky Blue
+                  Color(0xFFC8E6C9), // Light Green
+                  Color(0xFFB3E5FC), // Pale Sky Blue
                 ],
                 // begin: Alignment.topLeft,
                 // end: Alignment.bottomRight
@@ -45,7 +44,7 @@ class SpentTodayCard extends StatelessWidget {
               ),
               SizedBox(height: 7),
               Text(
-                "\$ 120",
+                "Rs.120",
                 style: TextStyle(
                   letterSpacing: 2.0,
                   fontSize: 16,
@@ -56,14 +55,19 @@ class SpentTodayCard extends StatelessWidget {
             ],
           ),
         ),
-        Positioned(top: 22, right: 22, child: Icon(Icons.more_horiz,color: AppColors.textBlack,)),
+        Positioned(
+          top: 22,
+          right: 22,
+          child: Icon(Icons.more_horiz, color: AppColors.textBlack),
+        ),
         Positioned(
           bottom: 18,
           left: 10,
           child: IncomeExpense(
             color: Colors.green,
             title: "Income",
-            amount: "\$120", myicon: Icons.arrow_downward,
+            amount: "Rs.120",
+            myicon: Icons.arrow_downward,
           ),
         ),
 
@@ -73,7 +77,8 @@ class SpentTodayCard extends StatelessWidget {
           child: IncomeExpense(
             color: Color(0xFFFF8A80),
             title: "Expense",
-            amount: '\$120', myicon: Icons.arrow_upward,
+            amount: 'Rs.120',
+            myicon: Icons.arrow_upward,
           ),
         ),
       ],
@@ -90,7 +95,8 @@ class IncomeExpense extends StatelessWidget {
     super.key,
     required this.color,
     required this.title,
-    required this.amount, required this.myicon,
+    required this.amount,
+    required this.myicon,
   });
 
   @override

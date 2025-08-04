@@ -1,5 +1,9 @@
 import 'package:expensetrack/core/appcolors.dart';
+import 'package:expensetrack/features/home/provider/switch_expense.dart';
+import 'package:expensetrack/features/home/widgets/income_expense_toggle.dart';
+import 'package:expensetrack/features/transactions/provider/transaction_data_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class AddNewentity extends StatelessWidget {
   const AddNewentity({super.key});
@@ -8,6 +12,9 @@ class AddNewentity extends StatelessWidget {
   Widget build(BuildContext context) {
     final TextEditingController entityController = TextEditingController();
     final TextEditingController numberController = TextEditingController();
+    final TextEditingController amountController = TextEditingController();
+    final TextEditingController dateController = TextEditingController();
+    // final provider = Provider.of<SwitchExpenseProvider>(context);
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -39,11 +46,112 @@ class AddNewentity extends StatelessWidget {
             keyboard: TextInputType.name,
             controller: entityController,
           ),
-          SizedBox(height: 30),
+          SizedBox(height: 20),
           NewPartyField(
             labelText: 'Phone Number',
             keyboard: TextInputType.phone,
             controller: numberController,
+          ),
+          SizedBox(height: 25),
+          IncomeExpenseToggle(
+            firstIndex: 'Amount Info',
+            secondIndex: 'Additional Details',
+          ),
+          Consumer2<SwitchExpenseProvider, TransactionDataProvider>(
+            builder: (context, switchprovider, transactionprovider, _) {
+              return switchprovider.selectedIndex == 0
+                  ? Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 18),
+                      child: Column(
+                        children: [
+                          SizedBox(height: 30),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              SizedBox(
+                                width: MediaQuery.sizeOf(context).width * 0.4,
+                                height:
+                                    MediaQuery.sizeOf(context).height * 0.08,
+                                child: TextFormField(
+                                  // autofocus: true,
+                                  keyboardType: TextInputType.number,
+                                  controller: amountController,
+                                  decoration: InputDecoration(
+                                    prefixIcon: Icon(
+                                      Icons.currency_rupee_rounded,
+                                      color: Colors.black54,
+                                    ),
+                                    labelText: "Amount",
+                                    labelStyle: TextStyle(
+                                      color: Colors.grey.shade400,
+                                    ),
+                                    enabled: true,
+                                    enabledBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                        color: Colors.grey.shade400,
+                                      ),
+                                      borderRadius: BorderRadius.circular(15),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                        color: Colors.green.shade300,
+                                      ),
+                                      borderRadius: BorderRadius.circular(15),
+                                    ),
+                                  ),
+                                ),
+                              ),
+
+                              GestureDetector(
+                                onTap: () =>
+                                    transactionprovider.pickDate(context),
+                                child: SizedBox(
+                                  width: MediaQuery.sizeOf(context).width * 0.4,
+                                  height:
+                                      MediaQuery.sizeOf(context).height * 0.07,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      border: Border.all(
+                                        color: Colors.grey.shade400,
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        SizedBox(width: 8),
+                                        Icon(
+                                          Icons.calendar_month_outlined,
+                                          color: Colors.grey.shade600,
+                                        ),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          transactionprovider.selectedDate,
+                                          style: TextStyle(
+                                            fontSize: 17,
+                                            fontWeight: FontWeight.normal,
+                                            color:
+                                                transactionprovider
+                                                        .selectedDate ==
+                                                    "Date"
+                                                ? Colors.grey.shade400
+                                                : Colors.black,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    )
+                  : Column(children: [
+                    
+              ],
+            );
+            },
           ),
         ],
       ),

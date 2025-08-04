@@ -31,7 +31,7 @@ class Home extends StatelessWidget {
                 spacing: 15,
                 children: [
                   RecieveGive(
-                    amount: "\$100",
+                    amount: "Rs.100",
                     account: 'To Receive',
                     onClicked: () {
                       Navigator.push(
@@ -41,7 +41,7 @@ class Home extends StatelessWidget {
                     },
                   ),
                   RecieveGive(
-                    amount: "\$200",
+                    amount: "Rs.200",
                     account: "To Pay",
                     onClicked: () {},
                   ),
@@ -50,7 +50,10 @@ class Home extends StatelessWidget {
 
               TitleText(title: "This month"),
 
-              const IncomeExpenseToggle(),
+              const IncomeExpenseToggle(
+                firstIndex: 'Income',
+                secondIndex: 'Expense',
+              ),
               Consumer<SwitchExpenseProvider>(
                 builder: (BuildContext context, value, Widget? child) {
                   return Column(
@@ -62,31 +65,31 @@ class Home extends StatelessWidget {
                                   icon: Icons.bus_alert_outlined,
                                   title: "Public Transport",
                                   subtitle: "May 5th 14:28",
-                                  cost: "\$124.20",
+                                  cost: "Rs. 124.20",
                                 ),
                                 TransactionsWidgets(
                                   icon: Icons.bus_alert_outlined,
                                   title: "Public Transport",
                                   subtitle: "May 5th 14:28",
-                                  cost: "\$124.20",
+                                  cost: "Rs. 124.20",
                                 ),
                                 TransactionsWidgets(
                                   icon: Icons.bus_alert_outlined,
                                   title: "Public Transport",
                                   subtitle: "May 5th 14:28",
-                                  cost: "\$124.20",
+                                  cost: "Rs. 124.20",
                                 ),
                                 TransactionsWidgets(
                                   icon: Icons.bus_alert_outlined,
                                   title: "Public Transport",
                                   subtitle: "May 5th 14:28",
-                                  cost: "\$124.20",
+                                  cost: "Rs. 124.20",
                                 ),
                                 TransactionsWidgets(
                                   icon: Icons.bus_alert_outlined,
                                   title: "Public Transport",
                                   subtitle: "May 5th 14:28",
-                                  cost: "\$124.20",
+                                  cost: "Rs. 124.20",
                                 ),
                               ],
                             )
@@ -96,31 +99,31 @@ class Home extends StatelessWidget {
                                   icon: Icons.money,
                                   title: "Public Transport",
                                   subtitle: "May 5th 14:28",
-                                  cost: "\$124.20",
+                                  cost: "Rs. 124.20",
                                 ),
                                 TransactionsWidgets(
                                   icon: Icons.money,
                                   title: "Public Transport",
                                   subtitle: "May 5th 14:28",
-                                  cost: "\$124.20",
+                                  cost: "Rs. 124.20",
                                 ),
                                 TransactionsWidgets(
                                   icon: Icons.money,
                                   title: "Public Transport",
                                   subtitle: "May 5th 14:28",
-                                  cost: "\$124.20",
+                                  cost: "Rs. 124.20",
                                 ),
                                 TransactionsWidgets(
                                   icon: Icons.money,
                                   title: "Public Transport",
                                   subtitle: "May 5th 14:28",
-                                  cost: "\$124.20",
+                                  cost: "Rs. 124.20",
                                 ),
                                 TransactionsWidgets(
                                   icon: Icons.money,
                                   title: "Public Transport",
                                   subtitle: "May 5th 14:28",
-                                  cost: "\$124.20",
+                                  cost: "Rs. 124.20",
                                 ),
                               ],
                             ),
@@ -131,13 +134,13 @@ class Home extends StatelessWidget {
 
               // ExpenseTile(
               //   title: 'Income',
-              //   amount: '\$6000',
+              //   amount: 'Rs. 6000',
               //   image: 'assets/images/pic.jpg',
               // ),
 
               // ExpenseTile(
               //   title: 'Expenses',
-              //   amount: '\$3200',
+              //   amount: 'Rs. 3200',
               //   image: 'assets/images/expense.jpg',
               // ),
               SizedBox(height: 14),

@@ -3,7 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 class IncomeExpenseToggle extends StatefulWidget {
-  const IncomeExpenseToggle({super.key});
+  final String firstIndex;
+  final String secondIndex;
+  const IncomeExpenseToggle({
+    super.key,
+    required this.firstIndex,
+    required this.secondIndex,
+  });
 
   @override
   State<IncomeExpenseToggle> createState() => _IncomeExpenseToggleState();
@@ -14,7 +20,7 @@ class _IncomeExpenseToggleState extends State<IncomeExpenseToggle> {
   Widget build(BuildContext context) {
     final toggleprovider = context.watch<SwitchExpenseProvider>();
     return Container(
-      height: 40,
+      height: 45,
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
@@ -38,7 +44,7 @@ class _IncomeExpenseToggleState extends State<IncomeExpenseToggle> {
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  index == 0 ? 'Income' : 'Expense',
+                  index == 0 ? widget.firstIndex : widget.secondIndex,
                   style: TextStyle(
                     color: isSelected ? Colors.white : Colors.black,
                     fontWeight: FontWeight.w600,

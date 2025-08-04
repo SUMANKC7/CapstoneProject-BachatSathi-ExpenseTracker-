@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:expensetrack/all_provider.dart';
-import 'package:expensetrack/features/entity/screen/addentity.dart';
 import 'package:expensetrack/features/home/screen/homescreen.dart';
 import 'package:expensetrack/route_generator.dart';
 import 'package:flutter/material.dart';
