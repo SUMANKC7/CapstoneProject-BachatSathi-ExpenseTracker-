@@ -1,159 +1,103 @@
-import 'package:expensetrack/core/appcolors.dart';
-import 'package:expensetrack/features/home/provider/switch_expense.dart';
-import 'package:expensetrack/features/home/widgets/income_expense_toggle.dart';
-import 'package:expensetrack/features/transactions/provider/transaction_data_provider.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
-class AddNewentity extends StatelessWidget {
+class AddNewentity extends StatefulWidget {
   const AddNewentity({super.key});
 
   @override
+  State<AddNewentity> createState() => _AddNewentityState();
+}
+
+class _AddNewentityState extends State<AddNewentity> {
+  final ScrollController _scrollController = ScrollController();
+  final GlobalKey _toggleKey = GlobalKey();
+  double _togglePosition = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _saveTogglePosition();
+    });
+  }
+
+  void _saveTogglePosition() {
+    final renderBox =
+        _toggleKey.currentContext?.findRenderObject() as RenderBox?;
+    if (renderBox != null) {
+      setState(() {
+        _togglePosition = renderBox.localToGlobal(Offset.zero).dy;
+      });
+    }
+  }
+
+  void _scrollToToggle() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollController.animateTo(
+        _togglePosition - MediaQuery.of(context).padding.top - kToolbarHeight,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final TextEditingController entityController = TextEditingController();
-    final TextEditingController numberController = TextEditingController();
-    final TextEditingController amountController = TextEditingController();
-    final TextEditingController dateController = TextEditingController();
-    // final provider = Provider.of<SwitchExpenseProvider>(context);
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          onPressed: () {
-            Navigator.pop(context);
-          },
-          icon: Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.arrow_back),
         ),
-        title: Text("Add New Entity"),
-        actions: [IconButton(onPressed: () {}, icon: Icon(Icons.info_outline))],
+        title: const Text("Add New Entity"),
       ),
-      body: Column(
-        children: [
-          SizedBox(height: 27),
-          Center(
-            child: CircleAvatar(
-              backgroundColor: AppColors.filterColor,
-              radius: 42,
-              child: Icon(
-                Icons.person_3,
-                size: 50,
-                color: AppColors.textTitleColor,
+      body: SingleChildScrollView(
+        controller: _scrollController,
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+          top: 10,
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 27),
+            Center(
+              child: CircleAvatar(
+                backgroundColor: Colors.grey,
+                radius: 42,
+                child: const Icon(Icons.person, size: 50),
               ),
             ),
-          ),
-          SizedBox(height: 30),
-          NewPartyField(
-            labelText: 'Entity Name',
-            keyboard: TextInputType.name,
-            controller: entityController,
-          ),
-          SizedBox(height: 20),
-          NewPartyField(
-            labelText: 'Phone Number',
-            keyboard: TextInputType.phone,
-            controller: numberController,
-          ),
-          SizedBox(height: 25),
-          IncomeExpenseToggle(
-            firstIndex: 'Amount Info',
-            secondIndex: 'Additional Details',
-          ),
-          Consumer2<SwitchExpenseProvider, TransactionDataProvider>(
-            builder: (context, switchprovider, transactionprovider, _) {
-              return switchprovider.selectedIndex == 0
-                  ? Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 18),
-                      child: Column(
-                        children: [
-                          SizedBox(height: 30),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              SizedBox(
-                                width: MediaQuery.sizeOf(context).width * 0.4,
-                                height:
-                                    MediaQuery.sizeOf(context).height * 0.08,
-                                child: TextFormField(
-                                  // autofocus: true,
-                                  keyboardType: TextInputType.number,
-                                  controller: amountController,
-                                  decoration: InputDecoration(
-                                    prefixIcon: Icon(
-                                      Icons.currency_rupee_rounded,
-                                      color: Colors.black54,
-                                    ),
-                                    labelText: "Amount",
-                                    labelStyle: TextStyle(
-                                      color: Colors.grey.shade400,
-                                    ),
-                                    enabled: true,
-                                    enabledBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                        color: Colors.grey.shade400,
-                                      ),
-                                      borderRadius: BorderRadius.circular(15),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                        color: Colors.green.shade300,
-                                      ),
-                                      borderRadius: BorderRadius.circular(15),
-                                    ),
-                                  ),
-                                ),
-                              ),
-
-                              GestureDetector(
-                                onTap: () =>
-                                    transactionprovider.pickDate(context),
-                                child: SizedBox(
-                                  width: MediaQuery.sizeOf(context).width * 0.4,
-                                  height:
-                                      MediaQuery.sizeOf(context).height * 0.07,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      border: Border.all(
-                                        color: Colors.grey.shade400,
-                                      ),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        SizedBox(width: 8),
-                                        Icon(
-                                          Icons.calendar_month_outlined,
-                                          color: Colors.grey.shade600,
-                                        ),
-                                        SizedBox(width: 8),
-                                        Text(
-                                          transactionprovider.selectedDate,
-                                          style: TextStyle(
-                                            fontSize: 17,
-                                            fontWeight: FontWeight.normal,
-                                            color:
-                                                transactionprovider
-                                                        .selectedDate ==
-                                                    "Date"
-                                                ? Colors.grey.shade400
-                                                : Colors.black,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    )
-                  : Column(children: [
-                    
-              ],
-            );
-            },
-          ),
-        ],
+            const SizedBox(height: 30),
+            NewPartyField(
+              labelText: 'Entity Name',
+              keyboard: TextInputType.name,
+              onTap: _scrollToToggle,
+            ),
+            const SizedBox(height: 20),
+            NewPartyField(
+              labelText: 'Phone Number',
+              keyboard: TextInputType.phone,
+              onTap: _scrollToToggle,
+            ),
+            const SizedBox(height: 25),
+            // This is the widget we want to keep at top
+            IncomeExpenseToggle(
+              key: _toggleKey,
+              firstIndex: 'Amount Info',
+              secondIndex: 'Additional Details',
+            ),
+            // Rest of your content...
+            NewPartyField(
+              labelText: "Entity Email",
+              keyboard: TextInputType.emailAddress,
+              onTap: _scrollToToggle,
+            ),
+            NewPartyField(
+              labelText: "Entity Address",
+              keyboard: TextInputType.text,
+              onTap: _scrollToToggle,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -162,35 +106,49 @@ class AddNewentity extends StatelessWidget {
 class NewPartyField extends StatelessWidget {
   final String labelText;
   final TextInputType keyboard;
-  final TextEditingController controller;
+  final VoidCallback? onTap;
+
   const NewPartyField({
     super.key,
     required this.labelText,
     required this.keyboard,
-    required this.controller,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 15),
+      padding: const EdgeInsets.symmetric(horizontal: 15),
       child: TextFormField(
-        // autofocus: true,
         keyboardType: keyboard,
-        controller: controller,
+        onTap: onTap,
         decoration: InputDecoration(
           labelText: labelText,
-          labelStyle: TextStyle(color: Colors.grey.shade400),
-          enabled: true,
-          enabledBorder: OutlineInputBorder(
-            borderSide: BorderSide(color: Colors.grey.shade400),
-            borderRadius: BorderRadius.circular(15),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderSide: BorderSide(color: Colors.green.shade300),
-            borderRadius: BorderRadius.circular(15),
-          ),
+          border: OutlineInputBorder(),
         ),
+      ),
+    );
+  }
+}
+
+class IncomeExpenseToggle extends StatelessWidget {
+  final String firstIndex;
+  final String secondIndex;
+
+  const IncomeExpenseToggle({
+    super.key,
+    required this.firstIndex,
+    required this.secondIndex,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(8),
+      color: Colors.blue[100],
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [Text(firstIndex), Text(secondIndex)],
       ),
     );
   }

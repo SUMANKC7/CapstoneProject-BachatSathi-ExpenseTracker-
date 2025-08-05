@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:expensetrack/features/transactions/model/transaction_model.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class TransactionDataProvider extends ChangeNotifier {
   final CollectionReference _firebaseFirestore = FirebaseFirestore.instance
@@ -15,11 +16,12 @@ class TransactionDataProvider extends ChangeNotifier {
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
   bool _income = false;
-  String _selectedDate = "Date";
+  DateTime _selectedDate = DateTime.now();
   String _expenseselectedcategory = "categories";
   String _incomeselectedcategory = "categories";
+  String get formattedDate => DateFormat("yyyy MMM dd").format(_selectedDate);
 
-  String get selectedDate => _selectedDate;
+  DateTime get selectedDate => _selectedDate;
   List<TransactionModel> get transactions => _transactions;
   TextEditingController get titleController => _titleController;
   TextEditingController get amountController => _amountController;
@@ -71,7 +73,7 @@ class TransactionDataProvider extends ChangeNotifier {
     );
 
     if (picked != null) {
-      _selectedDate = picked.toString();
+      _selectedDate = picked;
       notifyListeners();
     }
   }

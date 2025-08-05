@@ -2,7 +2,7 @@ class TransactionModel {
   final String title;
   final String amount;
   final String category;
-  final String? date;
+  final DateTime? date;
   final String remarks;
   final bool expense;
   final String id;
@@ -45,7 +45,7 @@ class TransactionModel {
     String? title,
     String? amount,
     String? category,
-    String? date,
+    DateTime? date,
     String? remarks,
     bool? expense,
     String? id,

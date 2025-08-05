@@ -39,7 +39,7 @@ class AddDates extends StatelessWidget {
                 ),
                 SizedBox(width: 8),
                 Text(
-                  addTransactionProvider.selectedDate,
+                  addTransactionProvider.formattedDate,
                   style: TextStyle(
                     fontSize: 19,
                     fontWeight: FontWeight.w900,
