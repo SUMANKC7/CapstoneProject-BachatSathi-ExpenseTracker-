@@ -3,71 +3,59 @@ import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:expensetrack/features/transactions/model/transaction_model.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:intl/intl.dart';
 
 class TransactionDataProvider extends ChangeNotifier {
   final CollectionReference _firebaseFirestore = FirebaseFirestore.instance
       .collection("Transactions");
 
-  TransactionDataProvider();
-
   List<TransactionModel> _transactions = [];
   final _titleController = TextEditingController();
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
-  bool _income = false;
-  DateTime _selectedDate = DateTime.now();
-  String _expenseselectedcategory = "categories";
-  String _incomeselectedcategory = "categories";
-  String get formattedDate => DateFormat("yyyy MMM dd").format(_selectedDate);
 
-  DateTime get selectedDate => _selectedDate;
+  bool _isExpense = true;
+  DateTime _selectedDate = DateTime.now();
+  String _selectedCategory = "categories";
+
   List<TransactionModel> get transactions => _transactions;
   TextEditingController get titleController => _titleController;
   TextEditingController get amountController => _amountController;
   TextEditingController get descriptionController => _descriptionController;
+  DateTime get selectedDate => _selectedDate;
+  String get selectedCategory => _selectedCategory;
+  bool get isExpense => _isExpense;
 
-  // String get formattedDate => DateFormat("yyyy/MM/dd").format(_currentdate);
-  bool get income => _income;
-
-  final List<String> _expensecategories = [
+  final List<String> expenseCategories = [
     "Food",
     "Clothes",
     "Game",
     "Rent",
     "Entertainment",
   ];
-  final List<String> _incomecategories = [
+  final List<String> incomeCategories = [
     "Salary",
     "Investment",
-    "Comission",
-    "Intrest",
+    "Commission",
+    "Interest",
     "Gift",
   ];
 
-  List<String> get expensecategories => _expensecategories;
-  List<String> get incomecategories => _incomecategories;
-  String get expenseselectedcategory => _expenseselectedcategory;
-  String get incomeselectedcategory => _incomeselectedcategory;
-
-  void selectexpenseCategory(value) {
-    _expenseselectedcategory = value;
+  void setCategory(String value) {
+    _selectedCategory = value;
     notifyListeners();
   }
 
-  void selectincomeCategory(value) {
-    _incomeselectedcategory = value;
-    notifyListeners();
-  }
-
-  void isIncome(bool value) {
-    _income = value;
+  void setTransactionType(bool expense) {
+    _isExpense = expense;
     notifyListeners();
   }
 
   Future<void> pickDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
+    final picked = await showDatePicker(
       context: context,
+      initialDate: _selectedDate,
       firstDate: DateTime(2000),
       lastDate: DateTime(2060),
     );
@@ -78,63 +66,51 @@ class TransactionDataProvider extends ChangeNotifier {
     }
   }
 
+  String get formattedDate {
+    // If you want to show a placeholder when no date is chosen
+    if (_selectedDate == null) {
+      return "Select Date";
+    }
+    return DateFormat('dd MMM yyyy').format(_selectedDate);
+  }
+
   Future<void> addTransaction() async {
     try {
       final transactionData = TransactionModel(
-        amount: _amountController.text,
-        category: _expenseselectedcategory,
+        id: "",
+        title: _titleController.text,
+        amount: double.tryParse(_amountController.text) ?? 0.0,
+        category: _selectedCategory,
         date: _selectedDate,
         remarks: _descriptionController.text,
-        expense: _income,
-        title: _titleController.text,
-        id: "",
+        expense: _isExpense,
       );
 
       final docRef = await _firebaseFirestore.add(transactionData.toMap());
 
-      //For creation of updated model with id
-      final updatedTransaction = transactionData.copyWith(id: docRef.id);
-      _transactions.add(updatedTransaction);
+      _transactions.add(transactionData.copyWith(id: docRef.id));
 
       _titleController.clear();
       _amountController.clear();
       _descriptionController.clear();
-      log(transactionData.amount);
+      _selectedCategory = "categories";
+
       notifyListeners();
     } catch (e) {
-      log("some error occurred $e");
+      log("Error adding transaction: $e");
     }
   }
 
-  Future<TransactionModel> getSingleTransaction(String transactionId) async {
-    try {
-      final doc = await _firebaseFirestore.doc(transactionId).get();
-      if (doc.exists) {
-        return TransactionModel.fromMap(
-          doc.data() as Map<String, dynamic>,
-          doc.id,
-        );
-      }
-      throw Exception('Transaction not found');
-    } catch (e) {
-      log("Error fetching transaction: $e");
-      rethrow;
-    }
-  }
-
-  Future<void> getTransactions() async {
-    try {
-      final snapshot = await _firebaseFirestore.get();
+  void listenToTransactions() {
+    _firebaseFirestore.snapshots().listen((snapshot) {
       _transactions = snapshot.docs.map((doc) {
         return TransactionModel.fromMap(
           doc.data() as Map<String, dynamic>,
           doc.id,
         );
       }).toList();
-    } catch (e) {
-      log("Error $e");
-    }
-    notifyListeners();
+      notifyListeners();
+    });
   }
 
   @override

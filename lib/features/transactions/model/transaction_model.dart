@@ -1,11 +1,13 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class TransactionModel {
-  final String title;
-  final String amount;
-  final String category;
-  final DateTime? date;
-  final String remarks;
-  final bool expense;
   final String id;
+  final String title;
+  final double amount;
+  final String category;
+  final DateTime date;
+  final String remarks;
+  final bool expense; // true = expense, false = income
 
   TransactionModel({
     required this.id,
@@ -18,46 +20,45 @@ class TransactionModel {
   });
 
   Map<String, dynamic> toMap() {
-    final result = <String, dynamic>{};
-    result.addAll({"title": title});
-    result.addAll({'amount': amount});
-    result.addAll({'category': category});
-    result.addAll({'date': date});
-    result.addAll({'remarks': remarks});
-    result.addAll({'expense': expense});
-
-    return result;
+    return {
+      "title": title,
+      "amount": amount,
+      "category": category,
+      "date": Timestamp.fromDate(date),
+      "remarks": remarks,
+      "expense": expense,
+    };
   }
 
   factory TransactionModel.fromMap(Map<String, dynamic> map, String id) {
     return TransactionModel(
       id: id,
       title: map["title"] ?? "",
-      amount: map['amount'] ?? '',
-      category: map['category'] ?? '',
-      date: map["date"] ?? "",
-      remarks: map['remarks'] ?? '',
-      expense: map['expense'] ?? false,
+      amount: (map["amount"] as num?)?.toDouble() ?? 0.0,
+      category: map["category"] ?? "",
+      date: (map["date"] as Timestamp?)?.toDate() ?? DateTime.now(),
+      remarks: map["remarks"] ?? "",
+      expense: map["expense"] ?? false,
     );
   }
 
   TransactionModel copyWith({
+    String? id,
     String? title,
-    String? amount,
+    double? amount,
     String? category,
     DateTime? date,
     String? remarks,
     bool? expense,
-    String? id,
   }) {
     return TransactionModel(
+      id: id ?? this.id,
       title: title ?? this.title,
       amount: amount ?? this.amount,
       category: category ?? this.category,
       date: date ?? this.date,
       remarks: remarks ?? this.remarks,
       expense: expense ?? this.expense,
-      id: id ?? this.id,
     );
   }
 }

@@ -8,33 +8,41 @@ class SwitchTransactionWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<TransactionDataProvider>(
-      context,
-      
-    );
-    final toggleButton = provider.income;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          toggleButton ? "Income" : "Expense",
-          style: TextStyle(
-            fontSize: 17,
-            color: toggleButton ? AppColors.green : AppColors.expenseColor,
-          ),
-        ),
-        Switch(
-          value: provider.income,
-          onChanged: (bool value) {
-            provider.isIncome(value);
-          },
-          activeColor: AppColors.green,
-          inactiveThumbColor: AppColors.expenseColor,
-          trackOutlineColor: WidgetStateColor.transparent,
-          inactiveTrackColor: AppColors.summaryBorder,
-          thumbIcon: WidgetStatePropertyAll(Icon(Icons.attach_money_outlined)),
-        ),
-      ],
+    return Consumer<TransactionDataProvider>(
+      builder: (context, provider, _) {
+        // If isExpense is true → show Expense, else → show Income
+        final isIncomeSelected = !provider.isExpense;
+
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              isIncomeSelected ? "Income" : "Expense",
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+                color: isIncomeSelected
+                    ? AppColors.green
+                    : AppColors.expenseColor,
+              ),
+            ),
+            Switch(
+              value: isIncomeSelected,
+              onChanged: (value) {
+                provider.setTransactionType(!value);
+                // Flip value because provider tracks expense
+              },
+              activeColor: AppColors.green,
+              inactiveThumbColor: AppColors.expenseColor,
+              inactiveTrackColor: AppColors.summaryBorder,
+              trackOutlineColor: WidgetStateColor.transparent,
+              thumbIcon: const WidgetStatePropertyAll(
+                Icon(Icons.attach_money_outlined),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

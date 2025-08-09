@@ -7,52 +7,53 @@ class AddDates extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final addTransactionProvider = Provider.of<TransactionDataProvider>(
-      context,
-    );
-    return GestureDetector(
-      onTap: () {
-        addTransactionProvider.pickDate(context);
-      },
-      child: Container(
-        padding: EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: Colors.grey.shade400, width: 1),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Label Text ("Date")
-            Text(
-              "Date",
-              style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+    return Consumer<TransactionDataProvider>(
+      builder: (context, provider, _) {
+        return GestureDetector(
+          onTap: () {
+            provider.pickDate(context);
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: Colors.grey.shade400, width: 1),
+              ),
             ),
-            SizedBox(height: 4), // Small spacing between label and value
-            // Date Row (Icon + Selected Date)
-            Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  Icons.calendar_month_outlined,
-                  color: Colors.grey.shade600,
-                ),
-                SizedBox(width: 8),
+                // Label Text ("Date")
                 Text(
-                  addTransactionProvider.formattedDate,
-                  style: TextStyle(
-                    fontSize: 19,
-                    fontWeight: FontWeight.w900,
-                    color: addTransactionProvider.selectedDate == "Date"
-                        ? Colors.grey.shade400
-                        : Colors.black,
-                  ),
+                  "Date",
+                  style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                ),
+                const SizedBox(
+                  height: 4,
+                ), // Small spacing between label and value
+                // Date Row (Icon + Selected Date)
+                Row(
+                  children: [
+                    Icon(
+                      Icons.calendar_month_outlined,
+                      color: Colors.grey.shade600,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      provider.formattedDate,
+                      style: const TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
