@@ -3,7 +3,6 @@ import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:expensetrack/features/transactions/model/transaction_model.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:intl/intl.dart';
 
 class TransactionDataProvider extends ChangeNotifier {
@@ -27,6 +26,15 @@ class TransactionDataProvider extends ChangeNotifier {
   String get selectedCategory => _selectedCategory;
   bool get isExpense => _isExpense;
 
+  List<TransactionModel> get incomeTransactions =>
+      _transactions.where((t) => !t.expense).toList();
+
+  List<TransactionModel> get expenseTransactions =>
+      _transactions.where((t) => t.expense).toList();
+
+  String get formattedSelectedDate =>
+      DateFormat('dd MMM yyyy').format(_selectedDate);
+
   final List<String> expenseCategories = [
     "Food",
     "Clothes",
@@ -41,6 +49,13 @@ class TransactionDataProvider extends ChangeNotifier {
     "Interest",
     "Gift",
   ];
+  String formatDate(DateTime date) {
+    return DateFormat('dd MMM yyyy').format(date);
+  }
+
+  Future<void> fetchTransactions() async {
+    listenToTransactions();
+  }
 
   void setCategory(String value) {
     _selectedCategory = value;
@@ -66,13 +81,10 @@ class TransactionDataProvider extends ChangeNotifier {
     }
   }
 
-  String get formattedDate {
-    // If you want to show a placeholder when no date is chosen
-    if (_selectedDate == null) {
-      return "Select Date";
-    }
-    return DateFormat('dd MMM yyyy').format(_selectedDate);
-  }
+  // String get formattedDate {
+  //   // If you want to show a placeholder when no date is chosen
+  //   return DateFormat('dd MMM yyyy').format(_selectedDate);
+  // }
 
   Future<void> addTransaction() async {
     try {
@@ -102,7 +114,9 @@ class TransactionDataProvider extends ChangeNotifier {
   }
 
   void listenToTransactions() {
-    _firebaseFirestore.snapshots().listen((snapshot) {
+    _firebaseFirestore.orderBy('date', descending: true).snapshots().listen((
+      snapshot,
+    ) {
       _transactions = snapshot.docs.map((doc) {
         return TransactionModel.fromMap(
           doc.data() as Map<String, dynamic>,

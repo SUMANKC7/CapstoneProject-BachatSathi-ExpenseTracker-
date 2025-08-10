@@ -40,7 +40,7 @@ class AddDates extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      provider.formattedDate,
+                      provider.formattedSelectedDate,
                       style: const TextStyle(
                         fontSize: 19,
                         fontWeight: FontWeight.w900,

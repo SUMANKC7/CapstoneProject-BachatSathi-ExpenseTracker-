@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
 class TransactionModel {
   final String id;
@@ -36,7 +37,9 @@ class TransactionModel {
       title: map["title"] ?? "",
       amount: (map["amount"] as num?)?.toDouble() ?? 0.0,
       category: map["category"] ?? "",
-      date: (map["date"] as Timestamp?)?.toDate() ?? DateTime.now(),
+      date: map["date"] is Timestamp
+          ? (map["date"] as Timestamp).toDate()
+          : DateTime.tryParse(map["date"]?.toString() ?? "") ?? DateTime.now(),
       remarks: map["remarks"] ?? "",
       expense: map["expense"] ?? false,
     );
@@ -61,4 +64,6 @@ class TransactionModel {
       expense: expense ?? this.expense,
     );
   }
+
+  String get formattedDate => DateFormat('dd MMM yyyy').format(date);
 }

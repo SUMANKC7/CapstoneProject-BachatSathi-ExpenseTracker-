@@ -6,12 +6,14 @@ class TransactionsWidgets extends StatelessWidget {
   final String title;
   final String subtitle;
   final String cost;
+  final Color? amountColor;
   const TransactionsWidgets({
     super.key,
     required this.icon,
     required this.title,
     required this.subtitle,
     required this.cost,
+    required this.amountColor,
   });
 
   @override
@@ -61,7 +63,7 @@ class TransactionsWidgets extends StatelessWidget {
           style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w500,
-            color: AppColors.filterTextColor,
+            color: amountColor,
           ),
         ),
       ),

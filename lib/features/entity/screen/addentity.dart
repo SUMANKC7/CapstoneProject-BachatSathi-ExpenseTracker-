@@ -86,6 +86,7 @@ class AddEntity extends StatelessWidget {
                   title: "hari",
                   subtitle: "2082 Shr 12",
                   cost: "1200",
+                  amountColor: Colors.green,
                 ),
               ],
             ),
