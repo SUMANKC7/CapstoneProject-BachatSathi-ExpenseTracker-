@@ -1,137 +1,103 @@
-import 'dart:developer';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:expensetrack/features/transactions/model/transaction_model.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../model/transaction_model.dart';
 
 class TransactionDataProvider extends ChangeNotifier {
-  final CollectionReference _firebaseFirestore = FirebaseFirestore.instance
-      .collection("Transactions");
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   List<TransactionModel> _transactions = [];
-  final _titleController = TextEditingController();
-  final _amountController = TextEditingController();
-  final _descriptionController = TextEditingController();
-
-  bool _isExpense = true;
-  DateTime _selectedDate = DateTime.now();
-  String _selectedCategory = "categories";
-
   List<TransactionModel> get transactions => _transactions;
-  TextEditingController get titleController => _titleController;
-  TextEditingController get amountController => _amountController;
-  TextEditingController get descriptionController => _descriptionController;
-  DateTime get selectedDate => _selectedDate;
-  String get selectedCategory => _selectedCategory;
-  bool get isExpense => _isExpense;
 
-  List<TransactionModel> get incomeTransactions =>
-      _transactions.where((t) => !t.expense).toList();
+  bool isExpense = false;
+  String selectedCategory = '';
+  DateTime selectedDate = DateTime.now();
 
-  List<TransactionModel> get expenseTransactions =>
-      _transactions.where((t) => t.expense).toList();
+  final TextEditingController titleController = TextEditingController();
+  final TextEditingController amountController = TextEditingController();
+  final TextEditingController descriptionController = TextEditingController();
 
-  String get formattedSelectedDate =>
-      DateFormat('dd MMM yyyy').format(_selectedDate);
+  List<String> incomeCategories = ["Salary", "Business", "Gift"];
+  List<String> expenseCategories = ["Food", "Transport", "Bills"];
 
-  final List<String> expenseCategories = [
-    "Food",
-    "Clothes",
-    "Game",
-    "Rent",
-    "Entertainment",
-  ];
-  final List<String> incomeCategories = [
-    "Salary",
-    "Investment",
-    "Commission",
-    "Interest",
-    "Gift",
-  ];
-  String formatDate(DateTime date) {
-    return DateFormat('dd MMM yyyy').format(date);
+  TransactionDataProvider() {
+    _listenToTransactions(); // ✅ start listening immediately
   }
 
-  Future<void> fetchTransactions() async {
-    listenToTransactions();
+  /// 🔹 Listen to Firestore updates (works offline too)
+  void _listenToTransactions() {
+    _firestore
+        .collection('Transactions')
+        .orderBy('date', descending: true)
+        .snapshots(includeMetadataChanges: true)
+        .listen((snapshot) {
+          _transactions = snapshot.docs.map((doc) {
+            final data = doc.data();
+            return TransactionModel.fromMap(data, doc.id);
+          }).toList();
+
+          notifyListeners();
+        });
   }
 
-  void setCategory(String value) {
-    _selectedCategory = value;
-    notifyListeners();
-  }
-
+  /// 🔹 Set transaction type (income or expense)
   void setTransactionType(bool expense) {
-    _isExpense = expense;
+    isExpense = expense;
     notifyListeners();
   }
 
+  /// 🔹 Set category
+  void setCategory(String category) {
+    selectedCategory = category;
+    notifyListeners();
+  }
+
+  /// 🔹 Pick date
   Future<void> pickDate(BuildContext context) async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate,
+      initialDate: selectedDate,
       firstDate: DateTime(2000),
-      lastDate: DateTime(2060),
+      lastDate: DateTime(2100),
     );
-
     if (picked != null) {
-      _selectedDate = picked;
+      selectedDate = picked;
       notifyListeners();
     }
   }
 
-  // String get formattedDate {
-  //   // If you want to show a placeholder when no date is chosen
-  //   return DateFormat('dd MMM yyyy').format(_selectedDate);
-  // }
+  /// 🔹 Format date for display
+  String formatDate(DateTime? date) {
+    if (date == null) return "";
+    return DateFormat('dd MMM yyyy').format(date);
+  }
 
+  /// 🔹 Get formatted selected date
+  String get formattedSelectedDate {
+    return "${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}";
+  }
+
+  /// 🔹 Add new transaction
   Future<void> addTransaction() async {
-    try {
-      final transactionData = TransactionModel(
-        id: "",
-        title: _titleController.text,
-        amount: double.tryParse(_amountController.text) ?? 0.0,
-        category: _selectedCategory,
-        date: _selectedDate,
-        remarks: _descriptionController.text,
-        expense: _isExpense,
-      );
-
-      final docRef = await _firebaseFirestore.add(transactionData.toMap());
-
-      _transactions.add(transactionData.copyWith(id: docRef.id));
-
-      _titleController.clear();
-      _amountController.clear();
-      _descriptionController.clear();
-      _selectedCategory = "categories";
-
-      notifyListeners();
-    } catch (e) {
-      log("Error adding transaction: $e");
-    }
-  }
-
-  void listenToTransactions() {
-    _firebaseFirestore.orderBy('date', descending: true).snapshots().listen((
-      snapshot,
-    ) {
-      _transactions = snapshot.docs.map((doc) {
-        return TransactionModel.fromMap(
-          doc.data() as Map<String, dynamic>,
-          doc.id,
-        );
-      }).toList();
-      notifyListeners();
+    await _firestore.collection('Transactions').add({
+      'title': titleController.text,
+      'amount': double.tryParse(amountController.text) ?? 0,
+      'remarks': descriptionController.text,
+      'category': selectedCategory,
+      'expense': isExpense,
+      'date': selectedDate,
     });
+    clearForm();
   }
 
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _amountController.dispose();
-    _descriptionController.dispose();
-    super.dispose();
+  /// 🔹 Clear form fields
+  void clearForm() {
+    titleController.clear();
+    amountController.clear();
+    descriptionController.clear();
+    selectedCategory = '';
+    selectedDate = DateTime.now();
+    isExpense = false;
+    notifyListeners();
   }
 }

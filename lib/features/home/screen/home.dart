@@ -23,7 +23,6 @@ class Home extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              /// Today’s section
               const TitleText(title: 'Today'),
               const SpentTodayCard(),
               const SizedBox(height: 20),
@@ -54,25 +53,20 @@ class Home extends StatelessWidget {
               const SizedBox(height: 20),
               const TitleText(title: "This month"),
               const SizedBox(height: 10),
-
-              /// Income / Expense toggle
               const IncomeExpenseToggle(
                 firstIndex: 'Income',
                 secondIndex: 'Expense',
               ),
               const SizedBox(height: 10),
 
-              /// Transactions List like in Transactions Screen
               Consumer2<SwitchExpenseProvider, TransactionDataProvider>(
                 builder: (context, switchProvider, txProvider, _) {
-                  // Filtered transactions based on toggle
                   final filteredTransactions = txProvider.transactions.where((
                     tx,
                   ) {
                     return switchProvider.selectedIndex == 0
-                        ? !tx
-                              .expense // Income only
-                        : tx.expense; // Expense only
+                        ? !tx.expense
+                        : tx.expense;
                   }).toList();
 
                   if (filteredTransactions.isEmpty) {
@@ -96,15 +90,10 @@ class Home extends StatelessWidget {
                       final tx = filteredTransactions[index];
                       return TransactionsWidgets(
                         icon: tx.expense
-                            ? Icons
-                                  .arrow_upward // Expense icon
-                            : Icons.arrow_downward, // Income icon
+                            ? Icons.arrow_upward
+                            : Icons.arrow_downward,
                         title: tx.title,
-                        subtitle: Provider.of<TransactionDataProvider>(
-                          context,
-                          listen: false,
-                        ).formatDate(tx.date),
-
+                        subtitle: txProvider.formatDate(tx.date),
                         cost: "Rs. ${tx.amount}",
                         amountColor: tx.expense ? Colors.red : Colors.green,
                       );
@@ -112,7 +101,6 @@ class Home extends StatelessWidget {
                   );
                 },
               ),
-
               const SizedBox(height: 14),
             ],
           ),
