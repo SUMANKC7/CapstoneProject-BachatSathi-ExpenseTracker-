@@ -1,12 +1,8 @@
-import 'package:expensetrack/core/appcolors.dart';
-import 'package:expensetrack/features/transactions/provider/transaction_data_provider.dart';
-import 'package:expensetrack/features/transactions/widgets/add_dates.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
-class AddTransactionBottomsheet extends StatelessWidget {
+class AddTransactionBottomsheet extends StatefulWidget {
   final String transactionName;
-  final int itemkey; // 0 = income, 1 = expense
+  final int itemkey; // 0 for income, 1 for expense
 
   const AddTransactionBottomsheet({
     super.key,
@@ -15,227 +11,338 @@ class AddTransactionBottomsheet extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final provider = Provider.of<TransactionDataProvider>(context);
-
-    // Set transaction type based on itemkey
-    provider.setTransactionType(itemkey == 1); // true = expense, false = income
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 20),
-
-            // Title field
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: provider.titleController,
-                    autofocus: true,
-                    maxLines: 1,
-                    style: const TextStyle(
-                      fontSize: 19,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.black,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: transactionName,
-                      hintStyle: TextStyle(
-                        fontSize: 19,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.grey.shade400,
-                      ),
-                      border: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                    ),
-                    cursorColor: Colors.grey.shade400,
-                  ),
-                ),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close, size: 27),
-                ),
-              ],
-            ),
-
-            // Amount input
-            InputData(amountcontroller: provider.amountController),
-
-            // Date picker
-            AddDates(),
-
-            const SizedBox(height: 20),
-
-            // Category selection title
-            Text(
-              "Select Category",
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 2,
-                color: Colors.grey.shade400,
-              ),
-            ),
-
-            const SizedBox(height: 15),
-
-            // Category chips
-            Wrap(
-              spacing: 10,
-              runSpacing: 5,
-              children: List.generate(
-                itemkey == 0
-                    ? provider.incomeCategories.length
-                    : provider.expenseCategories.length,
-                (index) {
-                  final category = itemkey == 0
-                      ? provider.incomeCategories[index]
-                      : provider.expenseCategories[index];
-
-                  final isSelected = provider.selectedCategory == category;
-
-                  return GestureDetector(
-                    onTap: () => provider.setCategory(category),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        color: isSelected
-                            ? Colors.green.shade300
-                            : AppColors.filterColor,
-                      ),
-                      child: Text(
-                        category,
-                        style: TextStyle(
-                          color: isSelected
-                              ? Colors.white
-                              : AppColors.filterTextColor,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // Remarks input
-            transactionadd(
-              mycontroller: provider.descriptionController,
-              hinttext: "Remarks",
-              keyboardtype: TextInputType.text,
-            ),
-
-            const SizedBox(height: 20),
-
-            // Add button
-            ElevatedButton(
-              onPressed: () {
-                provider.addTransaction();
-                Navigator.pop(context);
-              },
-              style: FilledButton.styleFrom(
-                minimumSize: Size.fromHeight(
-                  MediaQuery.sizeOf(context).height * 0.06,
-                ),
-                backgroundColor: itemkey == 0
-                    ? Colors.green.shade300
-                    : Colors.red.shade300,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              child: Text(
-                itemkey == 0 ? 'Add Income' : "Add Expense",
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.backgroundColor,
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 30),
-          ],
-        ),
-      ),
-    );
-  }
+  State<AddTransactionBottomsheet> createState() =>
+      _AddTransactionBottomsheetState();
 }
 
-class InputData extends StatelessWidget {
-  final TextEditingController amountcontroller;
-  const InputData({super.key, required this.amountcontroller});
+class _AddTransactionBottomsheetState extends State<AddTransactionBottomsheet> {
+  // Local state management instead of provider during build
+  late int _transactionType;
+  final _titleController = TextEditingController();
+  final _amountController = TextEditingController();
+  final _categoryController = TextEditingController();
+  DateTime? _selectedDate;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize with the passed itemkey
+    _transactionType = widget.itemkey;
+    _selectedDate = DateTime.now();
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _amountController.dispose();
+    _categoryController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 13),
-      child: TextFormField(
-        controller: amountcontroller,
-        keyboardType: TextInputType.number,
-        maxLines: 1,
-        style: const TextStyle(
-          fontSize: 19,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 2,
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle at the top
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+
+              // Title
+              Text(
+                widget.transactionName,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Transaction Type Selector (Income/Expense)
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _transactionType = 0;
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: _transactionType == 0
+                                ? Colors.green
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Center(
+                            child: Text(
+                              'Income',
+                              style: TextStyle(
+                                color: _transactionType == 0
+                                    ? Colors.white
+                                    : Colors.grey[600],
+                                fontWeight: _transactionType == 0
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _transactionType = 1;
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: _transactionType == 1
+                                ? Colors.red
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Center(
+                            child: Text(
+                              'Expense',
+                              style: TextStyle(
+                                color: _transactionType == 1
+                                    ? Colors.white
+                                    : Colors.grey[600],
+                                fontWeight: _transactionType == 1
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Amount Input
+              TextFormField(
+                controller: _amountController,
+                decoration: InputDecoration(
+                  labelText: 'Amount',
+                  prefixText: '\$',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey[50],
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
+                ),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Title Input
+              TextFormField(
+                controller: _titleController,
+                decoration: InputDecoration(
+                  labelText: 'Title',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey[50],
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Category Input
+              TextFormField(
+                controller: _categoryController,
+                decoration: InputDecoration(
+                  labelText: 'Category',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey[50],
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Date Picker
+              InkWell(
+                onTap: () async {
+                  final date = await showDatePicker(
+                    context: context,
+                    initialDate: _selectedDate ?? DateTime.now(),
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime.now(),
+                  );
+                  if (date != null) {
+                    setState(() {
+                      _selectedDate = date;
+                    });
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey[300]!),
+                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.grey[50],
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.calendar_today, color: Colors.grey[600]),
+                      const SizedBox(width: 12),
+                      Text(
+                        _selectedDate != null
+                            ? '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}'
+                            : 'Select Date',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: _selectedDate != null
+                              ? Colors.black
+                              : Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              // Action Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        _saveTransaction();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        backgroundColor: _transactionType == 0
+                            ? Colors.green
+                            : Colors.red,
+                      ),
+                      child: Text(
+                        _transactionType == 0 ? 'Add Income' : 'Add Expense',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-        decoration: InputDecoration(
-          labelText: "Amount",
-          labelStyle: TextStyle(color: Colors.grey.shade400, fontSize: 19),
-          prefixText: "\$ ",
-          hintText: "Amount",
-          hintStyle: TextStyle(
-            fontSize: 19,
-            fontWeight: FontWeight.w900,
-            color: Colors.grey.shade400,
-          ),
-          enabledBorder: UnderlineInputBorder(
-            borderSide: BorderSide(color: Colors.grey.shade400, width: 1),
-          ),
-          focusedBorder: UnderlineInputBorder(
-            borderSide: BorderSide(color: Colors.grey.shade400, width: 1.5),
-          ),
-        ),
-        cursorColor: Colors.grey.shade400,
       ),
     );
   }
-}
 
-TextFormField transactionadd({
-  required TextEditingController mycontroller,
-  required String hinttext,
-  required TextInputType keyboardtype,
-}) {
-  return TextFormField(
-    controller: mycontroller,
-    keyboardType: keyboardtype,
-    maxLines: null,
-    decoration: InputDecoration(
-      enabledBorder: OutlineInputBorder(
-        borderSide: const BorderSide(color: Colors.transparent),
-        borderRadius: BorderRadius.circular(15),
+  void _saveTransaction() {
+    // Validate inputs
+    if (_titleController.text.isEmpty || _amountController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in all required fields')),
+      );
+      return;
+    }
+
+    final amount = double.tryParse(_amountController.text);
+    if (amount == null || amount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid amount')),
+      );
+      return;
+    }
+
+    // TODO: Save to Firebase
+    // You can use your provider here AFTER the build is complete
+    // Example:
+    // final provider = Provider.of<TransactionDataProvider>(context, listen: false);
+    // provider.addTransaction({
+    //   'title': _titleController.text,
+    //   'amount': amount,
+    //   'category': _categoryController.text,
+    //   'date': _selectedDate,
+    //   'income': _transactionType == 0,
+    //   'expense': _transactionType == 1,
+    // });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '${_transactionType == 0 ? 'Income' : 'Expense'} added successfully!',
+        ),
+        backgroundColor: _transactionType == 0 ? Colors.green : Colors.red,
       ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(15),
-        borderSide: const BorderSide(color: Colors.transparent),
-      ),
-      filled: true,
-      fillColor: AppColors.summaryBorder,
-      hintText: hinttext,
-      hintStyle: TextStyle(color: AppColors.transactiontype),
-    ),
-  );
+    );
+
+    Navigator.pop(context);
+  }
 }
