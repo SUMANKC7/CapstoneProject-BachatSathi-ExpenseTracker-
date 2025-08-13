@@ -1,11 +1,11 @@
 import 'package:expensetrack/core/widgets/title_text.dart';
 import 'package:expensetrack/features/home/provider/switch_expense.dart';
-import 'package:expensetrack/features/entity/screen/addentity.dart';
 import 'package:expensetrack/features/home/widgets/income_expense_toggle.dart';
 import 'package:expensetrack/features/home/widgets/myappbar.dart';
 import 'package:expensetrack/features/home/widgets/receive_gain_widget.dart';
 import 'package:expensetrack/features/home/widgets/spent_today_card.dart';
 import 'package:expensetrack/features/transactions/provider/transaction_data_provider.dart';
+import 'package:expensetrack/features/transactions/screen/partyscreen.dart';
 import 'package:expensetrack/features/transactions/widgets/transaction_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -36,7 +36,7 @@ class Home extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const AddEntity(),
+                          builder: (context) => PartiesScreen(),
                         ),
                       );
                     },

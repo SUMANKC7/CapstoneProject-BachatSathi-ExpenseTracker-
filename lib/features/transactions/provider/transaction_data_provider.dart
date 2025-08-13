@@ -17,8 +17,8 @@ class TransactionDataProvider extends ChangeNotifier {
   final TextEditingController amountController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
 
-  List<String> incomeCategories = ["Salary", "Business", "Gift"];
-  List<String> expenseCategories = ["Food", "Transport", "Bills"];
+  List<String> incomeCategories = ["Salary", "Business", "Gift", "Others"];
+  List<String> expenseCategories = ["Food", "Transport", "Bills", "Others"];
 
   TransactionDataProvider() {
     _listenToTransactions(); // ✅ start listening immediately

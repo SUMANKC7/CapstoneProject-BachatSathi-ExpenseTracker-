@@ -4,7 +4,6 @@ import 'package:expensetrack/features/home/screen/homescreen.dart';
 import 'package:expensetrack/route_generator.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,7 +21,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      theme: ThemeData(useMaterial3: true, fontFamily: "serif"),
+      theme: ThemeData(useMaterial3: true, fontFamily: "Roboto"),
       home: const Homescreen(),
       initialRoute: "/",
       onGenerateRoute: RouteGenerator.generateRoute,
