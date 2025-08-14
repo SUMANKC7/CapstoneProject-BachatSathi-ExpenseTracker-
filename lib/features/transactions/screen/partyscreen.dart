@@ -2,9 +2,12 @@ import 'package:expensetrack/features/transactions/model/party_model.dart';
 import 'package:expensetrack/features/transactions/provider/add_entity_provider.dart';
 import 'package:expensetrack/features/transactions/provider/parties_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 class PartiesScreen extends StatelessWidget {
+  const PartiesScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -475,7 +478,7 @@ class PartiesScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              party.date,
+              DateFormat.yMMMd().format(party.date),
               style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
             ),
             if (party.phone.isNotEmpty)
@@ -701,7 +704,7 @@ class PartiesScreen extends StatelessWidget {
           children: [
             _buildDetailRow('Amount', 'Rs. ${party.openingBalance}'),
             _buildDetailRow('Status', _getStatusText(party.status)),
-            _buildDetailRow('Date', party.date),
+            _buildDetailRow('Date', DateFormat.yMMMd().format(party.date)),
             if (party.phone.isNotEmpty) _buildDetailRow('Phone', party.phone),
             if (party.email.isNotEmpty) _buildDetailRow('Email', party.email),
             if (party.address.isNotEmpty)
@@ -928,6 +931,8 @@ class PartiesScreen extends StatelessWidget {
 
 // widgets/add_party_dialog.dart
 class AddPartyDialog extends StatelessWidget {
+  const AddPartyDialog({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Consumer<AddEntityProvider>(

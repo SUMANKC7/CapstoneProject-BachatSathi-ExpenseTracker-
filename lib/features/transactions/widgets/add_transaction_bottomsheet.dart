@@ -1,4 +1,6 @@
+import 'package:expensetrack/features/transactions/provider/add_entity_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class AddTransactionBottomsheet extends StatefulWidget {
   final String transactionName;
@@ -304,8 +306,7 @@ class _AddTransactionBottomsheetState extends State<AddTransactionBottomsheet> {
     );
   }
 
-  void _saveTransaction() {
-    // Validate inputs
+  void _saveTransaction() async {
     if (_titleController.text.isEmpty || _amountController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in all required fields')),
@@ -321,28 +322,34 @@ class _AddTransactionBottomsheetState extends State<AddTransactionBottomsheet> {
       return;
     }
 
-    // TODO: Save to Firebase
-    // You can use your provider here AFTER the build is complete
-    // Example:
-    // final provider = Provider.of<TransactionDataProvider>(context, listen: false);
-    // provider.addTransaction({
-    //   'title': _titleController.text,
-    //   'amount': amount,
-    //   'category': _categoryController.text,
-    //   'date': _selectedDate,
-    //   'income': _transactionType == 0,
-    //   'expense': _transactionType == 1,
-    // });
+    try {
+      final provider = context.read<AddEntityProvider>();
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          '${_transactionType == 0 ? 'Income' : 'Expense'} added successfully!',
+      await provider.repository.addEntity(
+        name: _titleController.text,
+        phone: '', // you’ll need to decide how to handle this
+        openingBalance: amount.toString(),
+        date: _selectedDate?.toIso8601String() ?? '',
+        email: '',
+        address: _categoryController.text,
+        isCreditInfoSelected: _transactionType == 0, // example logic
+        toReceive: _transactionType == 0,
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${_transactionType == 0 ? 'Income' : 'Expense'} added successfully!',
+          ),
+          backgroundColor: _transactionType == 0 ? Colors.green : Colors.red,
         ),
-        backgroundColor: _transactionType == 0 ? Colors.green : Colors.red,
-      ),
-    );
+      );
 
-    Navigator.pop(context);
+      Navigator.pop(context);
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error saving transaction: $e')));
+    }
   }
 }

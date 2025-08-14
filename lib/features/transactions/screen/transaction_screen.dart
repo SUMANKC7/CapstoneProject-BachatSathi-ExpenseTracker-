@@ -1,9 +1,11 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:expensetrack/core/appcolors.dart';
 import 'package:expensetrack/features/transactions/widgets/add_transaction_bottomsheet.dart';
+import 'package:expensetrack/features/transactions/provider/parties_provider.dart';
+import 'package:expensetrack/features/transactions/model/party_model.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 // --- MAIN SCREEN WIDGET ---
 class TransactionScreen extends StatefulWidget {
@@ -14,10 +16,10 @@ class TransactionScreen extends StatefulWidget {
 }
 
 class _TransactionScreenState extends State<TransactionScreen> {
-  // State for the category filter
+  // State for the filters
   final ValueNotifier<String> _selectedCategoryFilter = ValueNotifier('all');
-  // TODO: Add state for date filters (e.g., 'This month', 'Last 7 days')
   final ValueNotifier<String> _selectedDateFilter = ValueNotifier('This month');
+  final ValueNotifier<String> _selectedSortFilter = ValueNotifier('latest');
 
   void _openBottomSheet(BuildContext context, String name, int key) {
     showModalBottomSheet(
@@ -31,33 +33,25 @@ class _TransactionScreenState extends State<TransactionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // The main stream of transactions from Firestore
-    final Stream<QuerySnapshot> txStream = FirebaseFirestore.instance
-        .collection('Transactions')
-        .orderBy('date', descending: true)
-        .snapshots();
-
     return Scaffold(
-      backgroundColor: const Color(
-        0xFFF4F6F9,
-      ), // A soft, clean background color
+      backgroundColor: const Color(0xFFF4F6F9),
       appBar: _buildAppBar(),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: txStream,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+      body: Consumer<PartiesProvider>(
+        builder: (context, partiesProvider, child) {
+          if (partiesProvider.isLoading) {
             return const Center(child: CupertinoActivityIndicator());
           }
-          if (snapshot.hasError) {
-            return _buildErrorState(snapshot.error.toString());
+
+          if (partiesProvider.error != null) {
+            return _buildErrorState(partiesProvider.error!);
           }
 
-          final docs = snapshot.data?.docs ?? [];
-          if (docs.isEmpty) {
+          final parties = partiesProvider.parties;
+          if (parties.isEmpty) {
             return _buildEmptyState();
           }
 
-          return _buildTransactionView(context, docs);
+          return _buildTransactionView(context, parties);
         },
       ),
     );
@@ -82,17 +76,14 @@ class _TransactionScreenState extends State<TransactionScreen> {
     );
   }
 
-  Widget _buildTransactionView(
-    BuildContext context,
-    List<QueryDocumentSnapshot> docs,
-  ) {
-    // Calculate summaries based on the full list of documents
-    final double income = _calculateTotal(docs, isExpense: false);
-    final double expense = _calculateTotal(docs, isExpense: true);
-    final double balance = income - expense;
+  Widget _buildTransactionView(BuildContext context, List<Party> parties) {
+    // Calculate summaries based on the list of parties
+    final double toReceive = _calculateToReceive(parties);
+    final double toGive = _calculateToGive(parties);
+    final double balance = toReceive - toGive;
 
-    // Get unique categories for the filter button
-    final categories = _extractCategories(docs);
+    // Get unique categories/types for the filter button
+    final categories = _extractCategories(parties);
 
     return Column(
       children: [
@@ -110,19 +101,21 @@ class _TransactionScreenState extends State<TransactionScreen> {
               const _SectionHeader(title: "Summary"),
               const SizedBox(height: 12),
               _SummarySection(
-                income: income,
-                expense: expense,
+                toReceive: toReceive,
+                toGive: toGive,
                 balance: balance,
               ),
               const SizedBox(height: 24),
               _TransactionListHeader(
                 categories: categories,
                 selectedCategoryNotifier: _selectedCategoryFilter,
+                selectedSortNotifier: _selectedSortFilter,
               ),
               const SizedBox(height: 12),
               _TransactionList(
-                docs: docs,
                 selectedCategoryNotifier: _selectedCategoryFilter,
+                selectedSortNotifier: _selectedSortFilter,
+                parties: parties,
               ),
               const SizedBox(height: 120), // Padding for the bottom buttons
             ],
@@ -183,6 +176,13 @@ class _TransactionScreenState extends State<TransactionScreen> {
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey[700]),
             ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                context.read<PartiesProvider>().refreshData();
+              },
+              child: const Text('Retry'),
+            ),
           ],
         ),
       ),
@@ -191,38 +191,26 @@ class _TransactionScreenState extends State<TransactionScreen> {
 
   // --- HELPER & LOGIC METHODS ---
 
-  double _calculateTotal(
-    List<QueryDocumentSnapshot> docs, {
-    required bool isExpense,
-  }) {
-    return docs
-        .where((doc) {
-          final data = doc.data() as Map<String, dynamic>? ?? {};
-          // Your logic might use 'expense' or 'isIncome'
-          bool docIsExpense = data.containsKey('expense')
-              ? (data['expense'] as bool)
-              : !(data.containsKey('income')
-                    ? (data['income'] as bool)
-                    : false);
-          return docIsExpense == isExpense;
-        })
-        .map((doc) {
-          final data = doc.data() as Map<String, dynamic>? ?? {};
-          final amount = data['amount'];
-          if (amount is num) return amount.toDouble();
-          if (amount is String) return double.tryParse(amount) ?? 0.0;
-          return 0.0;
-        })
-        .fold(0.0, (sum, amount) => sum + amount);
+  double _calculateToReceive(List<Party> parties) {
+    return parties
+        .where((party) => party.toReceive == true)
+        .fold(0.0, (sum, party) => sum + party.openingBalance);
   }
 
-  Set<String> _extractCategories(List<QueryDocumentSnapshot> docs) {
+  double _calculateToGive(List<Party> parties) {
+    return parties
+        .where((party) => party.toReceive == false)
+        .fold(0.0, (sum, party) => sum + party.openingBalance);
+  }
+
+  Set<String> _extractCategories(List<Party> parties) {
     final categories = <String>{};
-    for (final doc in docs) {
-      final data = doc.data() as Map<String, dynamic>? ?? {};
-      final category = data['category']?.toString();
-      if (category != null && category.isNotEmpty) {
-        categories.add(category);
+    for (final party in parties) {
+      // You can categorize by status or create custom categories
+      if (party.toReceive) {
+        categories.add('To Receive');
+      } else {
+        categories.add('To Pay');
       }
     }
     return categories;
@@ -309,13 +297,13 @@ class _DateFilterSection extends StatelessWidget {
 
 // Summary cards section
 class _SummarySection extends StatelessWidget {
-  final double income;
-  final double expense;
+  final double toReceive;
+  final double toGive;
   final double balance;
 
   const _SummarySection({
-    required this.income,
-    required this.expense,
+    required this.toReceive,
+    required this.toGive,
     required this.balance,
   });
 
@@ -327,8 +315,8 @@ class _SummarySection extends StatelessWidget {
           children: [
             Expanded(
               child: _SummaryCard(
-                title: 'Income',
-                amount: income,
+                title: 'To Receive',
+                amount: toReceive,
                 color: AppColors.green,
                 icon: Icons.arrow_downward,
               ),
@@ -336,8 +324,8 @@ class _SummarySection extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: _SummaryCard(
-                title: 'Expenses',
-                amount: expense,
+                title: 'To Pay',
+                amount: toGive,
                 color: AppColors.expenseColor!,
                 icon: Icons.arrow_upward,
               ),
@@ -345,7 +333,7 @@ class _SummarySection extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        _SummaryCard(title: 'Balance', amount: balance, isLarge: true),
+        _SummaryCard(title: 'Net Balance', amount: balance, isLarge: true),
       ],
     );
   }
@@ -370,7 +358,7 @@ class _SummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final formattedAmount = NumberFormat.currency(
-      symbol: '\$',
+      symbol: 'Rs. ',
       decimalDigits: 2,
     ).format(amount);
 
@@ -427,10 +415,12 @@ class _SummaryCard extends StatelessWidget {
 class _TransactionListHeader extends StatelessWidget {
   final Set<String> categories;
   final ValueNotifier<String> selectedCategoryNotifier;
+  final ValueNotifier<String> selectedSortNotifier;
 
   const _TransactionListHeader({
     required this.categories,
     required this.selectedCategoryNotifier,
+    required this.selectedSortNotifier,
   });
 
   @override
@@ -439,69 +429,137 @@ class _TransactionListHeader extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         const _SectionHeader(title: "Transactions"),
-        ValueListenableBuilder<String>(
-          valueListenable: selectedCategoryNotifier,
-          builder: (context, selectedCategory, child) {
-            return PopupMenuButton<String>(
-              onSelected: (String category) {
-                selectedCategoryNotifier.value = category;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      category == 'all'
-                          ? 'Showing all transactions'
-                          : 'Filtering by: $category',
+        Row(
+          children: [
+            // Category Filter Button
+            if (categories.isNotEmpty)
+              ValueListenableBuilder<String>(
+                valueListenable: selectedCategoryNotifier,
+                builder: (context, selectedCategory, child) {
+                  return PopupMenuButton<String>(
+                    onSelected: (String category) {
+                      selectedCategoryNotifier.value = category;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            category == 'all'
+                                ? 'Showing all transactions'
+                                : 'Filtering by: $category',
+                          ),
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                    },
+                    icon: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.softTeal,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.filter_list_rounded,
+                        color: AppColors.textBlack,
+                        size: 20,
+                      ),
                     ),
-                    duration: const Duration(seconds: 1),
+                    tooltip: 'Filter by category',
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    itemBuilder: (BuildContext context) {
+                      return [
+                        _buildPopupMenuItem(
+                          context: context,
+                          value: 'all',
+                          label: 'All Transactions',
+                          icon: Icons.all_inclusive_rounded,
+                          isSelected: selectedCategory == 'all',
+                        ),
+                        ...categories.map(
+                          (category) => _buildPopupMenuItem(
+                            context: context,
+                            value: category,
+                            label: category,
+                            icon: category == 'To Receive'
+                                ? Icons.arrow_downward_rounded
+                                : Icons.arrow_upward_rounded,
+                            isSelected: selectedCategory == category,
+                          ),
+                        ),
+                      ];
+                    },
+                  );
+                },
+              ),
+
+            const SizedBox(width: 8),
+
+            // Sort Button
+            ValueListenableBuilder<String>(
+              valueListenable: selectedSortNotifier,
+              builder: (context, selectedSort, child) {
+                return PopupMenuButton<String>(
+                  onSelected: (String sortOption) {
+                    selectedSortNotifier.value = sortOption;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Sorting by: $sortOption'),
+                        duration: const Duration(seconds: 1),
+                      ),
+                    );
+                  },
+                  icon: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.softTeal,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.sort_rounded,
+                      color: AppColors.textBlack,
+                      size: 20,
+                    ),
                   ),
+                  tooltip: 'Sort transactions',
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  itemBuilder: (BuildContext context) {
+                    return [
+                      _buildPopupMenuItem(
+                        context: context,
+                        value: 'latest',
+                        label: 'Latest First',
+                        icon: Icons.access_time_rounded,
+                        isSelected: selectedSort == 'latest',
+                      ),
+                      _buildPopupMenuItem(
+                        context: context,
+                        value: 'high_to_low',
+                        label: 'Amount High → Low',
+                        icon: Icons.arrow_downward_rounded,
+                        isSelected: selectedSort == 'high_to_low',
+                      ),
+                      _buildPopupMenuItem(
+                        context: context,
+                        value: 'low_to_high',
+                        label: 'Amount Low → High',
+                        icon: Icons.arrow_upward_rounded,
+                        isSelected: selectedSort == 'low_to_high',
+                      ),
+                      _buildPopupMenuItem(
+                        context: context,
+                        value: 'name_az',
+                        label: 'Name A → Z',
+                        icon: Icons.sort_by_alpha_rounded,
+                        isSelected: selectedSort == 'name_az',
+                      ),
+                    ];
+                  },
                 );
               },
-              icon: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.softTeal,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.filter_list_rounded,
-                  color: AppColors.textBlack,
-                  size: 20,
-                ),
-              ),
-              tooltip: 'Filter by category',
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              itemBuilder: (BuildContext context) {
-                // 'All' option first
-                final allItems = <PopupMenuEntry<String>>[
-                  _buildPopupMenuItem(
-                    context: context,
-                    value: 'all',
-                    label: 'All Categories',
-                    icon: Icons.all_inclusive_rounded,
-                    isSelected: selectedCategory == 'all',
-                  ),
-                  if (categories.isNotEmpty) const PopupMenuDivider(),
-                ];
-
-                // Add other categories
-                final categoryItems = categories
-                    .map(
-                      (category) => _buildPopupMenuItem(
-                        context: context,
-                        value: category,
-                        label: category,
-                        icon: Icons.label_outline_rounded,
-                        isSelected: selectedCategory == category,
-                      ),
-                    )
-                    .toList();
-
-                return [...allItems, ...categoryItems];
-              },
-            );
-          },
+            ),
+          ],
         ),
       ],
     );
@@ -537,66 +595,70 @@ class _TransactionListHeader extends StatelessWidget {
   }
 }
 
-// The main list of transactions
+// The main list of transactions using parties data
 class _TransactionList extends StatelessWidget {
-  final List<QueryDocumentSnapshot> docs;
   final ValueNotifier<String> selectedCategoryNotifier;
+  final ValueNotifier<String> selectedSortNotifier;
+  final List<Party> parties;
 
   const _TransactionList({
-    required this.docs,
     required this.selectedCategoryNotifier,
+    required this.selectedSortNotifier,
+    required this.parties,
   });
 
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<String>(
       valueListenable: selectedCategoryNotifier,
-      builder: (context, selectedCategory, child) {
-        final filteredDocs = selectedCategory == 'all'
-            ? docs
-            : docs.where((doc) {
-                final data = doc.data() as Map<String, dynamic>? ?? {};
-                return (data['category']?.toString() ?? '') == selectedCategory;
-              }).toList();
+      builder: (context, selectedCategory, _) {
+        return ValueListenableBuilder<String>(
+          valueListenable: selectedSortNotifier,
+          builder: (context, selectedSort, _) {
+            // Filter by category
+            List<Party> filteredParties = selectedCategory == 'all'
+                ? parties
+                : parties.where((party) {
+                    final category = party.toReceive ? 'To Receive' : 'To Pay';
+                    return category == selectedCategory;
+                  }).toList();
 
-        if (filteredDocs.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 40.0),
-            child: Column(
-              children: [
-                Icon(
-                  Icons.search_off_rounded,
-                  size: 48,
-                  color: Colors.grey[400],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  "No transactions found",
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w500,
+            // Sort
+            filteredParties.sort((a, b) {
+              if (selectedSort == 'latest') {
+                return b.date.compareTo(a.date);
+              } else if (selectedSort == 'high_to_low') {
+                return b.openingBalance.compareTo(a.openingBalance);
+              } else if (selectedSort == 'low_to_high') {
+                return a.openingBalance.compareTo(b.openingBalance);
+              } else if (selectedSort == 'name_az') {
+                return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+              }
+              return 0;
+            });
+
+            if (filteredParties.isEmpty) {
+              return const Padding(
+                padding: EdgeInsets.all(20.0),
+                child: Center(
+                  child: Text(
+                    "No transactions found for selected filters",
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
                   ),
                 ),
-                if (selectedCategory != 'all')
-                  Text(
-                    "for category '$selectedCategory'",
-                    style: TextStyle(fontSize: 14, color: Colors.grey[500]),
-                    textAlign: TextAlign.center,
-                  ),
-              ],
-            ),
-          );
-        }
+              );
+            }
 
-        return ListView.separated(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: filteredDocs.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 10),
-          itemBuilder: (context, index) {
-            final doc = filteredDocs[index];
-            return _TransactionTile(data: doc.data() as Map<String, dynamic>);
+            // Build list
+            return ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: filteredParties.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                return _TransactionTile(party: filteredParties[index]);
+              },
+            );
           },
         );
       },
@@ -604,88 +666,73 @@ class _TransactionList extends StatelessWidget {
   }
 }
 
-// A single transaction tile
 class _TransactionTile extends StatelessWidget {
-  final Map<String, dynamic> data;
-  const _TransactionTile({required this.data});
-
-  Map<String, dynamic> _parseTransactionData() {
-    bool isExpense = data.containsKey('expense')
-        ? (data['expense'] as bool)
-        : !(data.containsKey('income') ? (data['income'] as bool) : true);
-    final isIncome = !isExpense;
-
-    final title = data['title']?.toString() ?? 'Untitled';
-
-    String dateText = '';
-    if (data['date'] is Timestamp) {
-      dateText = DateFormat.yMMMd().format(
-        (data['date'] as Timestamp).toDate(),
-      );
-    } else if (data['date'] is String) {
-      final parsed = DateTime.tryParse(data['date']);
-      if (parsed != null) dateText = DateFormat.yMMMd().format(parsed);
-    }
-
-    double amount = 0.0;
-    final amtRaw = data['amount'];
-    if (amtRaw is num) {
-      amount = amtRaw.toDouble();
-    } else if (amtRaw is String) {
-      amount = double.tryParse(amtRaw) ?? 0.0;
-    }
-
-    final icon = isIncome
-        ? Icons.arrow_downward_rounded
-        : Icons.arrow_upward_rounded;
-    final amountColor = isIncome ? AppColors.green : AppColors.expenseColor;
-    final costText =
-        "${isIncome ? '+' : '-'}${NumberFormat.currency(symbol: '\$', decimalDigits: 2).format(amount)}";
-
-    return {
-      'icon': icon,
-      'title': title,
-      'dateText': dateText,
-      'cost': costText,
-      'amountColor': amountColor,
-    };
-  }
+  final Party party;
+  const _TransactionTile({required this.party});
 
   @override
   Widget build(BuildContext context) {
-    final transaction = _parseTransactionData();
+    final isToReceive = party.toReceive;
+    final icon = isToReceive
+        ? Icons.arrow_downward_rounded
+        : Icons.arrow_upward_rounded;
+    final amountColor = isToReceive ? AppColors.green : AppColors.expenseColor;
+    final costText =
+        "${isToReceive ? '+' : '-'}Rs. ${NumberFormat("#,##0.00").format(party.openingBalance)}";
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
         leading: CircleAvatar(
-          backgroundColor: (transaction['amountColor'] as Color).withOpacity(
-            0.1,
-          ),
-          child: Icon(
-            transaction['icon'],
-            color: transaction['amountColor'],
-            size: 24,
-          ),
+          backgroundColor: amountColor?.withOpacity(0.1),
+          child: Icon(icon, color: amountColor, size: 24),
         ),
         title: Text(
-          transaction['title'],
+          party.name,
           style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
         ),
-        subtitle: Text(
-          transaction['dateText'],
-          style: TextStyle(color: Colors.grey[600], fontSize: 14),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              DateFormat.yMMMd().format(party.date),
+              style: TextStyle(color: Colors.grey[600], fontSize: 14),
+            ),
+            if (party.phone.isNotEmpty)
+              Text(
+                party.phone,
+                style: TextStyle(color: Colors.grey[500], fontSize: 12),
+              ),
+          ],
         ),
-        trailing: Text(
-          transaction['cost'],
-          style: TextStyle(
-            color: transaction['amountColor'],
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              costText,
+              style: TextStyle(
+                color: amountColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+            Text(
+              isToReceive ? 'To Receive' : 'To Pay',
+              style: TextStyle(color: Colors.grey[500], fontSize: 12),
+            ),
+          ],
         ),
       ),
     );

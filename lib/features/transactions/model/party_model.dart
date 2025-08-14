@@ -1,5 +1,4 @@
-import 'dart:ui';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 enum TransactionStatus { toGive, toReceive, settled }
@@ -11,7 +10,7 @@ class Party {
   final String email;
   final String address;
   final double openingBalance;
-  final String date;
+  final DateTime date;
   final bool isCreditInfoSelected;
   final bool toReceive;
   final DateTime? createdAt;
@@ -47,7 +46,9 @@ class Party {
       email: data['email'] ?? '',
       address: data['address'] ?? '',
       openingBalance: (data['openingBalance'] ?? 0).toDouble(),
-      date: data['date'] ?? '',
+      date: data["date"] is Timestamp
+          ? (data["date"] as Timestamp).toDate()
+          : DateTime.tryParse(data["date"]?.toString() ?? "") ?? DateTime.now(),
       isCreditInfoSelected: data['isCreditInfoSelected'] ?? true,
       toReceive: data['toReceive'] ?? true,
       createdAt: data['createdAt']?.toDate(),
@@ -67,7 +68,7 @@ class Party {
     String? email,
     String? address,
     double? openingBalance,
-    String? date,
+    DateTime? date,
     bool? isCreditInfoSelected,
     bool? toReceive,
     DateTime? createdAt,

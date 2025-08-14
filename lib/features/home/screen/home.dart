@@ -1,13 +1,15 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:expensetrack/core/widgets/title_text.dart';
 import 'package:expensetrack/features/home/provider/switch_expense.dart';
 import 'package:expensetrack/features/home/widgets/income_expense_toggle.dart';
 import 'package:expensetrack/features/home/widgets/myappbar.dart';
 import 'package:expensetrack/features/home/widgets/receive_gain_widget.dart';
 import 'package:expensetrack/features/home/widgets/spent_today_card.dart';
-import 'package:expensetrack/features/transactions/provider/transaction_data_provider.dart';
+import 'package:expensetrack/features/transactions/provider/parties_provider.dart';
 import 'package:expensetrack/features/transactions/screen/partyscreen.dart';
 import 'package:expensetrack/features/transactions/widgets/transaction_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 class Home extends StatelessWidget {
@@ -45,7 +47,14 @@ class Home extends StatelessWidget {
                   RecieveGive(
                     amount: "Rs.200",
                     account: "To Pay",
-                    onClicked: () {},
+                    onClicked: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PartiesScreen(),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -59,22 +68,24 @@ class Home extends StatelessWidget {
               ),
               const SizedBox(height: 10),
 
-              Consumer2<SwitchExpenseProvider, TransactionDataProvider>(
-                builder: (context, switchProvider, txProvider, _) {
-                  final filteredTransactions = txProvider.transactions.where((
-                    tx,
+              Consumer2<PartiesProvider, SwitchExpenseProvider>(
+                builder: (context, partiesProvider, switchProvider, _) {
+                  // Filter based on toggle
+                  final filteredParties = partiesProvider.parties.where((
+                    party,
                   ) {
                     return switchProvider.selectedIndex == 0
-                        ? !tx.expense
-                        : tx.expense;
+                        ? party
+                              .toReceive // Show "To Receive"
+                        : !party.toReceive; // Show "To Pay"
                   }).toList();
 
-                  if (filteredTransactions.isEmpty) {
+                  if (filteredParties.isEmpty) {
                     return Padding(
                       padding: const EdgeInsets.only(top: 20),
                       child: Center(
                         child: Text(
-                          "No ${switchProvider.selectedIndex == 0 ? "Income" : "Expense"} records found.",
+                          "No ${switchProvider.selectedIndex == 0 ? "To Receive" : "To Pay"} records found.",
                           style: TextStyle(color: Colors.grey.shade600),
                         ),
                       ),
@@ -84,23 +95,26 @@ class Home extends StatelessWidget {
                   return ListView.separated(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    itemCount: filteredTransactions.length,
+                    itemCount: filteredParties.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 8),
                     itemBuilder: (context, index) {
-                      final tx = filteredTransactions[index];
+                      final party = filteredParties[index];
                       return TransactionsWidgets(
-                        icon: tx.expense
-                            ? Icons.arrow_upward
-                            : Icons.arrow_downward,
-                        title: tx.title,
-                        subtitle: txProvider.formatDate(tx.date),
-                        cost: "Rs. ${tx.amount}",
-                        amountColor: tx.expense ? Colors.red : Colors.green,
+                        icon: party.toReceive
+                            ? Icons.arrow_downward
+                            : Icons.arrow_upward,
+                        title: party.name,
+                        subtitle: DateFormat.yMMMd().format(party.date),
+                        cost: "Rs. ${party.openingBalance}",
+                        amountColor: party.toReceive
+                            ? Colors.green
+                            : Colors.red,
                       );
                     },
                   );
                 },
               ),
+
               const SizedBox(height: 14),
             ],
           ),
