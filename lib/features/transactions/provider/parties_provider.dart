@@ -1,31 +1,45 @@
 import 'package:expensetrack/features/transactions/model/party_model.dart';
-import 'package:expensetrack/features/transactions/services/add_entity_services.dart';
+import 'package:expensetrack/features/transactions/services/entity_repository.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class PartiesProvider with ChangeNotifier {
-  final EntityRepository _repository;
-  List<Party> _parties = [];
-  List<Party> _cachedParties = [];
+  final EntityRepositoryService _repository;
+  List<AddParty> _parties = [];
+  List<AddParty> _cachedParties = [];
   String _searchQuery = '';
   TransactionStatus? _selectedFilter;
   bool _isOnline = true;
   bool _isLoading = true;
   String? _error;
 
+  // Form controllers
+  final formKey = GlobalKey<FormState>();
+  final nameCtrl = TextEditingController();
+  final phoneCtrl = TextEditingController();
+  final emailCtrl = TextEditingController();
+  final addressCtrl = TextEditingController();
+  final openingCtrl = TextEditingController();
+  final dateCtrl = TextEditingController();
+
+  // Form state
+  bool isCreditInfoSelected = true;
+  bool toReceive = true;
+
   PartiesProvider(this._repository) {
     _initializeData();
     _checkConnectivity();
   }
 
-  List<Party> get parties => _filteredParties;
+  List<AddParty> get parties => _filteredParties;
   String get searchQuery => _searchQuery;
   TransactionStatus? get selectedFilter => _selectedFilter;
   bool get isOnline => _isOnline;
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  List<Party> get _filteredParties {
-    List<Party> filtered = _parties;
+  List<AddParty> get _filteredParties {
+    List<AddParty> filtered = _parties;
 
     // Apply search filter
     if (_searchQuery.isNotEmpty) {
@@ -49,11 +63,93 @@ class PartiesProvider with ChangeNotifier {
     return filtered;
   }
 
-  void _initializeData() {
-    // Load cached data first
-    _loadCachedData();
+  void toggleCreditInfo(bool value) {
+    isCreditInfoSelected = value;
+    notifyListeners();
+  }
 
-    // Then listen to real-time updates
+  void toggleReceiveGive(bool value) {
+    toReceive = value;
+    notifyListeners();
+  }
+
+  Future<void> pickDate(BuildContext context) async {
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (pickedDate != null) {
+      dateCtrl.text = DateFormat.yMMMd().format(pickedDate);
+      notifyListeners();
+    }
+  }
+
+  void clearForm() {
+    nameCtrl.clear();
+    phoneCtrl.clear();
+    emailCtrl.clear();
+    addressCtrl.clear();
+    openingCtrl.clear();
+    dateCtrl.clear();
+    isCreditInfoSelected = true;
+    toReceive = true;
+    notifyListeners();
+  }
+
+  Future<bool> saveEntity(BuildContext context) async {
+    try {
+      if (!formKey.currentState!.validate()) return false;
+
+      // Convert empty strings to default values
+      final name = nameCtrl.text.trim();
+      final phone = phoneCtrl.text.trim();
+      final email = emailCtrl.text.trim();
+      final address = addressCtrl.text.trim();
+      final openingBalance = openingCtrl.text.trim();
+      final date = dateCtrl.text.trim();
+
+      if (name.isEmpty) {
+        throw 'Party name is required';
+      }
+
+      await _repository.addEntity(
+        name: name,
+        phone: phone.isEmpty ? 'N/A' : phone,
+        email: email.isEmpty ? 'N/A' : email,
+        address: address.isEmpty ? 'N/A' : address,
+        openingBalance: openingBalance.isEmpty ? '0' : openingBalance,
+        date: date.isEmpty ? DateFormat.yMMMd().format(DateTime.now()) : date,
+        isCreditInfoSelected: isCreditInfoSelected,
+        toReceive: toReceive,
+      );
+
+      clearForm();
+      return true;
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+      debugPrint('Save entity error: $e');
+      return false;
+    }
+  }
+
+  @override
+  void dispose() {
+    // Dispose all controllers when provider is disposed
+    nameCtrl.dispose();
+    phoneCtrl.dispose();
+    emailCtrl.dispose();
+    addressCtrl.dispose();
+    openingCtrl.dispose();
+    dateCtrl.dispose();
+    super.dispose();
+  }
+
+  void _initializeData() {
+    _loadCachedData();
     _repository.listenToEntities().listen(
       (parties) {
         _parties = parties;
@@ -64,7 +160,6 @@ class PartiesProvider with ChangeNotifier {
       onError: (error) {
         _error = error.toString();
         _isLoading = false;
-        // Fallback to cached data on error
         if (_parties.isEmpty) {
           _parties = _cachedParties;
         }
@@ -113,7 +208,6 @@ class PartiesProvider with ChangeNotifier {
   Future<void> refreshData() async {
     _isLoading = true;
     notifyListeners();
-
     await _checkConnectivity();
     await _loadCachedData();
   }

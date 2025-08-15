@@ -18,17 +18,16 @@ class AddTransactionBottomsheet extends StatefulWidget {
 }
 
 class _AddTransactionBottomsheetState extends State<AddTransactionBottomsheet> {
-  // Local state management instead of provider during build
   late int _transactionType;
   final _titleController = TextEditingController();
   final _amountController = TextEditingController();
   final _categoryController = TextEditingController();
+  final _remarksController = TextEditingController();
   DateTime? _selectedDate;
 
   @override
   void initState() {
     super.initState();
-    // Initialize with the passed itemkey
     _transactionType = widget.itemkey;
     _selectedDate = DateTime.now();
   }
@@ -38,6 +37,7 @@ class _AddTransactionBottomsheetState extends State<AddTransactionBottomsheet> {
     _titleController.dispose();
     _amountController.dispose();
     _categoryController.dispose();
+    _remarksController.dispose();
     super.dispose();
   }
 
@@ -93,11 +93,7 @@ class _AddTransactionBottomsheetState extends State<AddTransactionBottomsheet> {
                   children: [
                     Expanded(
                       child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _transactionType = 0;
-                          });
-                        },
+                        onTap: () => setState(() => _transactionType = 0),
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           decoration: BoxDecoration(
@@ -125,11 +121,7 @@ class _AddTransactionBottomsheetState extends State<AddTransactionBottomsheet> {
                     ),
                     Expanded(
                       child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _transactionType = 1;
-                          });
-                        },
+                        onTap: () => setState(() => _transactionType = 1),
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           decoration: BoxDecoration(
@@ -179,6 +171,13 @@ class _AddTransactionBottomsheetState extends State<AddTransactionBottomsheet> {
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
+                validator: (value) {
+                  if (value == null || value.isEmpty)
+                    return 'Please enter amount';
+                  if (double.tryParse(value) == null)
+                    return 'Enter valid amount';
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
 
@@ -197,6 +196,11 @@ class _AddTransactionBottomsheetState extends State<AddTransactionBottomsheet> {
                     vertical: 16,
                   ),
                 ),
+                validator: (value) {
+                  if (value == null || value.isEmpty)
+                    return 'Please enter title';
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
 
@@ -218,6 +222,25 @@ class _AddTransactionBottomsheetState extends State<AddTransactionBottomsheet> {
               ),
               const SizedBox(height: 16),
 
+              // Remarks Input
+              TextFormField(
+                controller: _remarksController,
+                decoration: InputDecoration(
+                  labelText: 'Remarks (Optional)',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey[50],
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
+                ),
+                maxLines: 2,
+              ),
+              const SizedBox(height: 16),
+
               // Date Picker
               InkWell(
                 onTap: () async {
@@ -228,9 +251,7 @@ class _AddTransactionBottomsheetState extends State<AddTransactionBottomsheet> {
                     lastDate: DateTime.now(),
                   );
                   if (date != null) {
-                    setState(() {
-                      _selectedDate = date;
-                    });
+                    setState(() => _selectedDate = date);
                   }
                 },
                 child: Container(
@@ -279,9 +300,7 @@ class _AddTransactionBottomsheetState extends State<AddTransactionBottomsheet> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {
-                        _saveTransaction();
-                      },
+                      onPressed: _saveTransaction,
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
@@ -306,8 +325,12 @@ class _AddTransactionBottomsheetState extends State<AddTransactionBottomsheet> {
     );
   }
 
-  void _saveTransaction() async {
+  Future<void> _saveTransaction() async {
+    print('_saveTransaction called'); // Debug print
+
+    // Validate required fields
     if (_titleController.text.isEmpty || _amountController.text.isEmpty) {
+      print('Validation failed: missing required fields'); // Debug print
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in all required fields')),
       );
@@ -316,37 +339,81 @@ class _AddTransactionBottomsheetState extends State<AddTransactionBottomsheet> {
 
     final amount = double.tryParse(_amountController.text);
     if (amount == null || amount <= 0) {
+      print('Validation failed: invalid amount'); // Debug print
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a valid amount')),
       );
       return;
     }
 
+    print('Validation passed. Data:'); // Debug print
+    print('Title: ${_titleController.text.trim()}');
+    print('Amount: $amount');
+    print('Category: ${_categoryController.text.trim()}');
+    print('Date: ${_selectedDate ?? DateTime.now()}');
+    print('Remarks: ${_remarksController.text.trim()}');
+    print('Is Expense: ${_transactionType == 1}');
+
     try {
-      final provider = context.read<AddEntityProvider>();
+      final provider = context.read<AddTransactionProvider>();
+      print('Provider obtained, calling saveTransaction...'); // Debug print
 
-      await provider.repository.addEntity(
-        name: _titleController.text,
-        phone: '', // you’ll need to decide how to handle this
-        openingBalance: amount.toString(),
-        date: _selectedDate?.toIso8601String() ?? '',
-        email: '',
-        address: _categoryController.text,
-        isCreditInfoSelected: _transactionType == 0, // example logic
-        toReceive: _transactionType == 0,
+      // Create transaction using provider
+      final success = await provider.saveTransaction(
+        context,
+        title: _titleController.text.trim(),
+        amount: amount,
+        category: _categoryController.text.trim(),
+        date: _selectedDate ?? DateTime.now(),
+        remarks: _remarksController.text.trim(),
+        isExpense: _transactionType == 1,
       );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '${_transactionType == 0 ? 'Income' : 'Expense'} added successfully!',
-          ),
-          backgroundColor: _transactionType == 0 ? Colors.green : Colors.red,
-        ),
-      );
+      print('saveTransaction completed. Success: $success'); // Debug print
 
-      Navigator.pop(context);
+      if (success) {
+        print('Showing success dialog'); // Debug print
+        // Show success dialog
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.green, size: 60),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Transaction added successfully!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(); // Close dialog
+                    Navigator.of(context).pop(); // Close bottom sheet
+                  },
+                  child: const Text(
+                    'OK',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      } else {
+        print('saveTransaction returned false'); // Debug print
+      }
     } catch (e) {
+      print('Exception in _saveTransaction: $e'); // Debug print
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error saving transaction: $e')));

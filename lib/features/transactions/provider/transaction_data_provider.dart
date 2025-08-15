@@ -6,8 +6,8 @@ import '../model/transaction_model.dart';
 class TransactionDataProvider extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  List<TransactionModel> _transactions = [];
-  List<TransactionModel> get transactions => _transactions;
+  List<AllTransactionModel> _transactions = [];
+  List<AllTransactionModel> get transactions => _transactions;
 
   bool isExpense = false;
   String selectedCategory = '';
@@ -33,7 +33,7 @@ class TransactionDataProvider extends ChangeNotifier {
         .listen((snapshot) {
           _transactions = snapshot.docs.map((doc) {
             final data = doc.data();
-            return TransactionModel.fromMap(data, doc.id);
+            return AllTransactionModel.fromMap(data, doc.id);
           }).toList();
 
           notifyListeners();

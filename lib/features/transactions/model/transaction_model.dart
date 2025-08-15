@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
-class TransactionModel {
+class AllTransactionModel {
   final String id;
   final String title;
   final double amount;
@@ -9,8 +9,9 @@ class TransactionModel {
   final DateTime date;
   final String remarks;
   final bool expense; // true = expense, false = income
+  final DateTime? createdAt;
 
-  TransactionModel({
+  AllTransactionModel({
     required this.id,
     required this.title,
     required this.amount,
@@ -18,6 +19,7 @@ class TransactionModel {
     required this.date,
     required this.remarks,
     required this.expense,
+    this.createdAt,
   });
 
   Map<String, dynamic> toMap() {
@@ -28,11 +30,12 @@ class TransactionModel {
       "date": Timestamp.fromDate(date),
       "remarks": remarks,
       "expense": expense,
+      "createdAt": createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
     };
   }
 
-  factory TransactionModel.fromMap(Map<String, dynamic> map, String id) {
-    return TransactionModel(
+  factory AllTransactionModel.fromMap(Map<String, dynamic> map, String id) {
+    return AllTransactionModel(
       id: id,
       title: map["title"] ?? "",
       amount: (map["amount"] as num?)?.toDouble() ?? 0.0,
@@ -42,10 +45,13 @@ class TransactionModel {
           : DateTime.tryParse(map["date"]?.toString() ?? "") ?? DateTime.now(),
       remarks: map["remarks"] ?? "",
       expense: map["expense"] ?? false,
+      createdAt: map["createdAt"] is Timestamp 
+          ? (map["createdAt"] as Timestamp).toDate()
+          : null,
     );
   }
 
-  TransactionModel copyWith({
+  AllTransactionModel copyWith({
     String? id,
     String? title,
     double? amount,
@@ -53,8 +59,9 @@ class TransactionModel {
     DateTime? date,
     String? remarks,
     bool? expense,
+    DateTime? createdAt,
   }) {
-    return TransactionModel(
+    return AllTransactionModel(
       id: id ?? this.id,
       title: title ?? this.title,
       amount: amount ?? this.amount,
@@ -62,6 +69,7 @@ class TransactionModel {
       date: date ?? this.date,
       remarks: remarks ?? this.remarks,
       expense: expense ?? this.expense,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 

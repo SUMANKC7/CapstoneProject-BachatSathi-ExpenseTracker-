@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 enum TransactionStatus { toGive, toReceive, settled }
 
-class Party {
+class AddParty {
   final String id;
   final String name;
   final String phone;
@@ -15,19 +15,21 @@ class Party {
   final bool toReceive;
   final DateTime? createdAt;
   final Color avatarColor;
+  final String category;
 
-  Party({
+  AddParty({
     required this.id,
     required this.name,
     required this.phone,
     required this.email,
-    required this.address,
+    required this.category,
     required this.openingBalance,
     required this.date,
     required this.isCreditInfoSelected,
     required this.toReceive,
     this.createdAt,
     required this.avatarColor,
+    required this.address,
   });
 
   String get avatarText =>
@@ -38,8 +40,8 @@ class Party {
     return toReceive ? TransactionStatus.toReceive : TransactionStatus.toGive;
   }
 
-  factory Party.fromFirestore(Map<String, dynamic> data, String id) {
-    return Party(
+  factory AddParty.fromFirestore(Map<String, dynamic> data, String id) {
+    return AddParty(
       id: id,
       name: data['name'] ?? '',
       phone: data['phone'] ?? '',
@@ -53,6 +55,7 @@ class Party {
       toReceive: data['toReceive'] ?? true,
       createdAt: data['createdAt']?.toDate(),
       avatarColor: _generateColor(data['name'] ?? ''),
+      category: data["category"] ?? "",
     );
   }
 
@@ -61,7 +64,7 @@ class Party {
     return Colors.primaries[name.length % Colors.primaries.length];
   }
 
-  Party copyWith({
+  AddParty copyWith({
     String? id,
     String? name,
     String? phone,
@@ -74,7 +77,7 @@ class Party {
     DateTime? createdAt,
     Color? avatarColor,
   }) {
-    return Party(
+    return AddParty(
       id: id ?? this.id,
       name: name ?? this.name,
       phone: phone ?? this.phone,
@@ -86,6 +89,7 @@ class Party {
       toReceive: toReceive ?? this.toReceive,
       createdAt: createdAt ?? this.createdAt,
       avatarColor: avatarColor ?? this.avatarColor,
+      category: category,
     );
   }
 }

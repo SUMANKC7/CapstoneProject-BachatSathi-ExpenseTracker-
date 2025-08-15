@@ -76,7 +76,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
     );
   }
 
-  Widget _buildTransactionView(BuildContext context, List<Party> parties) {
+  Widget _buildTransactionView(BuildContext context, List<AddParty> parties) {
     // Calculate summaries based on the list of parties
     final double toReceive = _calculateToReceive(parties);
     final double toGive = _calculateToGive(parties);
@@ -191,19 +191,19 @@ class _TransactionScreenState extends State<TransactionScreen> {
 
   // --- HELPER & LOGIC METHODS ---
 
-  double _calculateToReceive(List<Party> parties) {
+  double _calculateToReceive(List<AddParty> parties) {
     return parties
         .where((party) => party.toReceive == true)
         .fold(0.0, (sum, party) => sum + party.openingBalance);
   }
 
-  double _calculateToGive(List<Party> parties) {
+  double _calculateToGive(List<AddParty> parties) {
     return parties
         .where((party) => party.toReceive == false)
         .fold(0.0, (sum, party) => sum + party.openingBalance);
   }
 
-  Set<String> _extractCategories(List<Party> parties) {
+  Set<String> _extractCategories(List<AddParty> parties) {
     final categories = <String>{};
     for (final party in parties) {
       // You can categorize by status or create custom categories
@@ -599,7 +599,7 @@ class _TransactionListHeader extends StatelessWidget {
 class _TransactionList extends StatelessWidget {
   final ValueNotifier<String> selectedCategoryNotifier;
   final ValueNotifier<String> selectedSortNotifier;
-  final List<Party> parties;
+  final List<AddParty> parties;
 
   const _TransactionList({
     required this.selectedCategoryNotifier,
@@ -616,7 +616,7 @@ class _TransactionList extends StatelessWidget {
           valueListenable: selectedSortNotifier,
           builder: (context, selectedSort, _) {
             // Filter by category
-            List<Party> filteredParties = selectedCategory == 'all'
+            List<AddParty> filteredParties = selectedCategory == 'all'
                 ? parties
                 : parties.where((party) {
                     final category = party.toReceive ? 'To Receive' : 'To Pay';
@@ -667,7 +667,7 @@ class _TransactionList extends StatelessWidget {
 }
 
 class _TransactionTile extends StatelessWidget {
-  final Party party;
+  final AddParty party;
   const _TransactionTile({required this.party});
 
   @override
@@ -709,9 +709,9 @@ class _TransactionTile extends StatelessWidget {
               DateFormat.yMMMd().format(party.date),
               style: TextStyle(color: Colors.grey[600], fontSize: 14),
             ),
-            if (party.phone.isNotEmpty)
+            if (party.category.isNotEmpty)
               Text(
-                party.phone,
+                party.category,
                 style: TextStyle(color: Colors.grey[500], fontSize: 12),
               ),
           ],

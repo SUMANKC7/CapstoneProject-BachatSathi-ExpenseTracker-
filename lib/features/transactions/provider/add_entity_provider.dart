@@ -1,33 +1,24 @@
-import 'package:expensetrack/features/transactions/services/add_entity_services.dart';
+import 'package:expensetrack/features/transactions/services/all_transaction_entity_service.dart';
 import 'package:flutter/material.dart';
 
-class AddEntityProvider extends ChangeNotifier {
-  final EntityRepository repository;
+class AddTransactionProvider extends ChangeNotifier {
+  final AddTransactionRepo repository;
 
-  AddEntityProvider(this.repository);
+  AddTransactionProvider(this.repository);
 
-  bool isCreditInfoSelected = true;
-  bool toReceive = true;
+  bool isExpense = true; // true = expense, false = income
 
-  final nameCtrl = TextEditingController();
-  final phoneCtrl = TextEditingController();
-  final openingCtrl = TextEditingController();
+  final titleCtrl = TextEditingController();
+  final amountCtrl = TextEditingController();
+  final categoryCtrl = TextEditingController();
   final dateCtrl = TextEditingController();
-  final emailCtrl = TextEditingController();
-  final addressCtrl = TextEditingController();
+  final remarksCtrl = TextEditingController();
 
   final formKey = GlobalKey<FormState>();
 
-  void toggleCreditInfo(bool value) {
-    if (isCreditInfoSelected != value) {
-      isCreditInfoSelected = value;
-      notifyListeners();
-    }
-  }
-
-  void toggleReceiveGive(bool value) {
-    if (toReceive != value) {
-      toReceive = value;
+  void toggleTransactionType(bool value) {
+    if (isExpense != value) {
+      isExpense = value;
       notifyListeners();
     }
   }
@@ -46,23 +37,69 @@ class AddEntityProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> saveEntity(BuildContext context) async {
+  Future<bool> saveTransaction(
+    BuildContext context, {
+    required String title,
+    required bool isExpense,
+    required String remarks,
+    required DateTime date,
+    required String category,
+    required double amount,
+  }) async {
+    try {
+      print('Provider saveTransaction called with:');
+      print('Title: $title');
+      print('Amount: $amount');
+      print('Category: $category');
+      print('Date: $date');
+      print('Remarks: $remarks');
+      print('IsExpense: $isExpense');
+
+      // Use the parameters passed from the UI, not the controllers
+      await repository.addTransaction(
+        title: title,
+        amount: amount,
+        category: category,
+        date: date,
+        remarks: remarks,
+        expense: isExpense,
+      );
+
+      print('Repository addTransaction completed successfully');
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Transaction saved successfully')),
+      );
+
+      return true;
+    } catch (e) {
+      print('Error in provider saveTransaction: $e');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error saving transaction: $e')));
+      return false;
+    }
+  }
+
+  // This method can be used for forms that use the provider's controllers
+  Future<bool> saveTransactionFromControllers(BuildContext context) async {
     if (!validateForm()) return false;
 
     try {
-      await repository.addEntity(
-        name: nameCtrl.text.trim(),
-        phone: phoneCtrl.text.trim(),
-        openingBalance: openingCtrl.text.trim(),
-        date: dateCtrl.text.trim(),
-        email: emailCtrl.text.trim(),
-        address: addressCtrl.text.trim(),
-        isCreditInfoSelected: isCreditInfoSelected,
-        toReceive: toReceive,
+      final amount = double.tryParse(amountCtrl.text.trim()) ?? 0.0;
+      final date = DateTime.tryParse(dateCtrl.text.trim()) ?? DateTime.now();
+
+      await repository.addTransaction(
+        title: titleCtrl.text.trim(),
+        amount: amount,
+        category: categoryCtrl.text.trim(),
+        date: date,
+        remarks: remarksCtrl.text.trim(),
+        expense: isExpense,
       );
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Entity saved successfully')),
+        const SnackBar(content: Text('Transaction saved successfully')),
       );
 
       clearForm();
@@ -70,7 +107,7 @@ class AddEntityProvider extends ChangeNotifier {
     } catch (e) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Error saving entity: $e')));
+      ).showSnackBar(SnackBar(content: Text('Error saving transaction: $e')));
       return false;
     }
   }
@@ -80,25 +117,22 @@ class AddEntityProvider extends ChangeNotifier {
   }
 
   void clearForm() {
-    nameCtrl.clear();
-    phoneCtrl.clear();
-    openingCtrl.clear();
+    titleCtrl.clear();
+    amountCtrl.clear();
+    categoryCtrl.clear();
     dateCtrl.clear();
-    emailCtrl.clear();
-    addressCtrl.clear();
-    isCreditInfoSelected = true;
-    toReceive = true;
+    remarksCtrl.clear();
+    isExpense = true;
     notifyListeners();
   }
 
   @override
   void dispose() {
-    nameCtrl.dispose();
-    phoneCtrl.dispose();
-    openingCtrl.dispose();
+    titleCtrl.dispose();
+    amountCtrl.dispose();
+    categoryCtrl.dispose();
     dateCtrl.dispose();
-    emailCtrl.dispose();
-    addressCtrl.dispose();
+    remarksCtrl.dispose();
     super.dispose();
   }
 }

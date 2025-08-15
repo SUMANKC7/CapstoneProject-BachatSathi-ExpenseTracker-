@@ -50,14 +50,14 @@ class EntityRepositoryService {
   }
 
   /// Listen to all entities in real-time with offline support
-  Stream<List<Party>> listenToEntities() {
+  Stream<List<AddParty>> listenToEntities() {
     return _firestore
         .collection('Entities')
         .orderBy('createdAt', descending: true)
         .snapshots(includeMetadataChanges: true)
         .map((snapshot) {
           final parties = snapshot.docs.map((doc) {
-            return Party.fromFirestore(doc.data(), doc.id);
+            return AddParty.fromFirestore(doc.data(), doc.id);
           }).toList();
 
           // Cache data locally when online
@@ -70,7 +70,7 @@ class EntityRepositoryService {
   }
 
   /// Get cached entities when offline
-  Future<List<Party>> getCachedEntities() async {
+  Future<List<AddParty>> getCachedEntities() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final cachedData = prefs.getString(_localStorageKey);
@@ -78,7 +78,7 @@ class EntityRepositoryService {
       if (cachedData != null) {
         final List<dynamic> jsonList = json.decode(cachedData);
         return jsonList.map((item) {
-          return Party.fromFirestore(
+          return AddParty.fromFirestore(
             Map<String, dynamic>.from(item),
             item['id'],
           );
@@ -112,7 +112,7 @@ class EntityRepositoryService {
   }
 
   /// Cache entities locally
-  Future<void> _cacheEntitiesLocally(List<Party> parties) async {
+  Future<void> _cacheEntitiesLocally(List<AddParty> parties) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final List<Map<String, dynamic>> jsonList = parties.map((party) {
@@ -146,7 +146,7 @@ class EntityRepositoryService {
           .get();
 
       final parties = snapshot.docs.map((doc) {
-        return Party.fromFirestore(doc.data(), doc.id);
+        return AddParty.fromFirestore(doc.data(), doc.id);
       }).toList();
 
       await _cacheEntitiesLocally(parties);

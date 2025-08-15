@@ -1,11 +1,10 @@
 import 'package:expensetrack/core/appcolors.dart';
-import 'package:expensetrack/features/transactions/provider/add_entity_provider.dart';
+import 'package:expensetrack/features/transactions/provider/parties_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 class _Palette {
-  // Swap these with your AppColors.* if you want.
   static const primary = Color(0xFF16A34A); // green
   static const danger = Color(0xFFE11D48); // rose
   static const surface = Color(0xFFF6F7F9);
@@ -15,21 +14,65 @@ class _Palette {
   static const border = Color(0xFFE5E7EB);
 }
 
-class AddEntity extends StatelessWidget {
+class AddEntity extends StatefulWidget {
   const AddEntity({super.key});
 
-  Future<void> _submit(BuildContext context, AddEntityProvider provider) async {
-    final success = await provider.saveEntity(context);
-    if (success) {
-      Navigator.of(context).maybePop();
+  @override
+  State<AddEntity> createState() => _AddEntityState();
+}
+
+class _AddEntityState extends State<AddEntity> {
+  late final PartiesProvider _provider;
+
+  @override
+  void initState() {
+    super.initState();
+    _provider = Provider.of<PartiesProvider>(context, listen: false);
+    // Delay the form clearing until after the build is complete
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _provider.clearForm();
+    });
+  }
+
+  Future<void> _submit() async {
+    debugPrint("Submit tapped");
+    try {
+      final success = await _provider.saveEntity(context);
+      debugPrint("SaveEntity result: $success");
+
+      if (success && mounted) {
+        // Hide the keyboard
+        FocusScope.of(context).unfocus();
+
+        // Clear all form data
+        _provider.clearForm();
+
+        // Show a success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Party added successfully')),
+        );
+      }
+    } catch (e, st) {
+      debugPrint('Submit error: $e\n$st');
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to save: $e')));
+      }
     }
+  }
+
+  @override
+  void dispose() {
+    // Don't dispose the controllers here since they're managed by the provider
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
 
-    return Consumer<AddEntityProvider>(
+    return Consumer<PartiesProvider>(
       builder: (context, provider, _) {
         return Scaffold(
           backgroundColor: _Palette.surface,
@@ -47,21 +90,14 @@ class AddEntity extends StatelessWidget {
               icon: const Icon(Icons.arrow_back),
               onPressed: () => Navigator.of(context).maybePop(),
             ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.info_outline),
-                onPressed: () {},
-              ),
-            ],
           ),
 
-          // Pinned CTA above keyboard
           bottomNavigationBar: SafeArea(
             minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
             child: SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () => _submit(context, provider),
+                onPressed: _submit,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _Palette.primary,
                   padding: const EdgeInsets.symmetric(vertical: 16),
@@ -95,7 +131,6 @@ class AddEntity extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          // Header hides when keyboard opens
                           AnimatedSwitcher(
                             duration: const Duration(milliseconds: 180),
                             switchInCurve: Curves.easeOut,
@@ -183,8 +218,6 @@ class AddEntity extends StatelessWidget {
                                   activeColor: _Palette.primary,
                                   inactiveThumbColor: _Palette.danger,
                                   inactiveTrackColor: _Palette.border,
-                                  // If your Flutter version supports it:
-                                  // trackOutlineColor: const MaterialStatePropertyAll(Colors.transparent),
                                   thumbIcon: const WidgetStatePropertyAll(
                                     Icon(Icons.swap_horiz),
                                   ),
@@ -228,7 +261,6 @@ class AddEntity extends StatelessWidget {
   }
 }
 
-/// ===== Reusable text field =====
 class _TextField extends StatelessWidget {
   const _TextField({
     required this.controller,
@@ -288,7 +320,6 @@ class _TextField extends StatelessWidget {
   }
 }
 
-/// ===== Credit Info Section (forms + chips) =====
 class _CreditInfoSection extends StatelessWidget {
   const _CreditInfoSection({
     required this.openingCtrl,
@@ -341,7 +372,6 @@ class _CreditInfoSection extends StatelessWidget {
         ),
         const SizedBox(height: 16),
 
-        // To Receive / To Give
         Align(
           alignment: Alignment.centerLeft,
           child: Wrap(
@@ -388,7 +418,6 @@ class _CreditInfoSection extends StatelessWidget {
   }
 }
 
-/// ===== Additional Details Section =====
 class _AdditionalDetailsSection extends StatelessWidget {
   const _AdditionalDetailsSection({
     required this.emailCtrl,
