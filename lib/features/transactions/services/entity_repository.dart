@@ -1,22 +1,33 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:expensetrack/features/transactions/model/party_model.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
 class EntityRepositoryService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore;
+  final SharedPreferences _prefs;
   static const String _localStorageKey = 'cached_entities';
   static const String _lastSyncKey = 'last_sync';
+  static const String _offlineOperationsKey = 'offline_operations';
 
-  EntityRepositoryService() {
-    // Enable offline persistence
+  EntityRepositoryService({
+    FirebaseFirestore? firestore,
+    required SharedPreferences prefs,
+  }) : _firestore = firestore ?? FirebaseFirestore.instance,
+       _prefs = prefs {
     _firestore.settings = const Settings(
       persistenceEnabled: true,
       cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
     );
   }
 
-  /// Add a new entity to Firestore
+  /// Initialize SharedPreferences
+  static Future<SharedPreferences> initSharedPreferences() async {
+    return await SharedPreferences.getInstance();
+  }
+
+  /// Add a new entity with robust offline support
   Future<void> addEntity({
     required String name,
     required String phone,
@@ -26,136 +37,130 @@ class EntityRepositoryService {
     required String address,
     required bool isCreditInfoSelected,
     required bool toReceive,
+    required String category,
   }) async {
+    final entityData = {
+      'name': name,
+      'phone': phone,
+      'openingBalance': double.tryParse(openingBalance) ?? 0,
+      'date': date,
+      'email': email,
+      'address': address,
+      'isCreditInfoSelected': isCreditInfoSelected,
+      'toReceive': toReceive,
+      'category': category,
+      'createdAt': FieldValue.serverTimestamp(),
+      'status': toReceive
+          ? TransactionStatus.toReceive.toString()
+          : TransactionStatus.toGive.toString(),
+    };
+
     try {
-      final entityData = {
-        'name': name,
-        'phone': phone,
-        'openingBalance': double.tryParse(openingBalance) ?? 0,
-        'date': date,
-        'email': email,
-        'address': address,
-        'isCreditInfoSelected': isCreditInfoSelected,
-        'toReceive': toReceive,
-        'createdAt': FieldValue.serverTimestamp(),
-      };
-
       await _firestore.collection('Entities').add(entityData);
-
-      // Update local cache
       await _updateLocalCache();
     } catch (e) {
-      throw Exception("Failed to add entity: $e");
+      debugPrint('Online add failed, caching offline: $e');
+      await _cacheOfflineOperation(type: 'add', data: entityData);
+      throw Exception('Operation queued for sync when online');
     }
   }
 
-  /// Listen to all entities in real-time with offline support
+  /// Fetch entities with proper caching
+  Future<List<AddParty>> fetchEntities() async {
+    try {
+      final snapshot = await _firestore
+          .collection('Entities')
+          .orderBy('createdAt', descending: true)
+          .get(const GetOptions(source: Source.server));
+
+      final parties = snapshot.docs.map((doc) {
+        final data = doc.data();
+        if (data.isEmpty) throw Exception('Empty document data');
+        return AddParty.fromFirestore(data, doc.id);
+      }).toList();
+
+      await cacheEntities(parties);
+      return parties;
+    } catch (e) {
+      debugPrint('Fetch failed, using cache: $e');
+      return await getCachedEntities();
+    }
+  }
+
+  /// Stream of entities with real-time updates
   Stream<List<AddParty>> listenToEntities() {
     return _firestore
         .collection('Entities')
         .orderBy('createdAt', descending: true)
         .snapshots(includeMetadataChanges: true)
-        .map((snapshot) {
+        .asyncMap((snapshot) async {
           final parties = snapshot.docs.map((doc) {
             return AddParty.fromFirestore(doc.data(), doc.id);
           }).toList();
 
-          // Cache data locally when online
           if (!snapshot.metadata.isFromCache) {
-            _cacheEntitiesLocally(parties);
+            await cacheEntities(parties);
           }
-
           return parties;
         });
   }
 
-  /// Get cached entities when offline
+  /// Get cached entities
   Future<List<AddParty>> getCachedEntities() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final cachedData = prefs.getString(_localStorageKey);
+      final cachedData = _prefs.getString(_localStorageKey);
+      if (cachedData == null) return [];
 
-      if (cachedData != null) {
-        final List<dynamic> jsonList = json.decode(cachedData);
-        return jsonList.map((item) {
-          return AddParty.fromFirestore(
-            Map<String, dynamic>.from(item),
-            item['id'],
-          );
-        }).toList();
-      }
+      final jsonList = json.decode(cachedData) as List;
+      return jsonList.map((item) {
+        return AddParty.fromFirestore(
+          Map<String, dynamic>.from(item),
+          item['id'] ?? '',
+        );
+      }).toList();
     } catch (e) {
-      print('Error loading cached entities: $e');
+      debugPrint('Cache load error: $e');
+      return [];
     }
-
-    return [];
   }
 
-  /// Delete entity by ID
+  /// Delete entity with offline support
   Future<void> deleteEntity(String id) async {
     try {
       await _firestore.collection('Entities').doc(id).delete();
       await _updateLocalCache();
     } catch (e) {
-      throw Exception("Failed to delete entity: $e");
+      debugPrint('Online delete failed, caching offline: $e');
+      await _cacheOfflineOperation(type: 'delete', data: {'id': id});
+      throw Exception('Delete queued for sync when online');
     }
   }
 
-  /// Update entity
-  Future<void> updateEntity(String id, Map<String, dynamic> data) async {
+  /// Public method to cache entities
+  Future<void> cacheEntities(List<AddParty> parties) async {
     try {
-      await _firestore.collection('Entities').doc(id).update(data);
-      await _updateLocalCache();
+      final jsonList = parties.map((party) => party.toCacheJson()).toList();
+      await _prefs.setString(_localStorageKey, json.encode(jsonList));
+      await _prefs.setInt(_lastSyncKey, DateTime.now().millisecondsSinceEpoch);
     } catch (e) {
-      throw Exception("Failed to update entity: $e");
+      debugPrint('Cache error: $e');
+      throw Exception('Failed to cache entities');
     }
   }
 
-  /// Cache entities locally
-  Future<void> _cacheEntitiesLocally(List<AddParty> parties) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final List<Map<String, dynamic>> jsonList = parties.map((party) {
-        return {
-          'id': party.id,
-          'name': party.name,
-          'phone': party.phone,
-          'email': party.email,
-          'address': party.address,
-          'openingBalance': party.openingBalance,
-          'date': party.date,
-          'isCreditInfoSelected': party.isCreditInfoSelected,
-          'toReceive': party.toReceive,
-          'createdAt': party.createdAt?.millisecondsSinceEpoch,
-        };
-      }).toList();
-
-      await prefs.setString(_localStorageKey, json.encode(jsonList));
-      await prefs.setInt(_lastSyncKey, DateTime.now().millisecondsSinceEpoch);
-    } catch (e) {
-      print('Error caching entities: $e');
-    }
+  /// Check if there are pending offline operations
+  bool hasPendingOperations() {
+    return (_prefs.getStringList(_offlineOperationsKey)?.isNotEmpty ?? false);
   }
 
-  /// Update local cache
-  Future<void> _updateLocalCache() async {
-    try {
-      final snapshot = await _firestore
-          .collection('Entities')
-          .orderBy('createdAt', descending: true)
-          .get();
-
-      final parties = snapshot.docs.map((doc) {
-        return AddParty.fromFirestore(doc.data(), doc.id);
-      }).toList();
-
-      await _cacheEntitiesLocally(parties);
-    } catch (e) {
-      print('Error updating local cache: $e');
-    }
+  /// Clear all cached data
+  Future<void> clearCache() async {
+    await _prefs.remove(_localStorageKey);
+    await _prefs.remove(_lastSyncKey);
+    await _prefs.remove(_offlineOperationsKey);
   }
 
-  /// Check if device is online
+  /// Check network connectivity
   Future<bool> isOnline() async {
     try {
       await _firestore
@@ -168,12 +173,64 @@ class EntityRepositoryService {
     }
   }
 
-  /// Get last sync time
+  /// Get last sync timestamp
   Future<DateTime?> getLastSyncTime() async {
-    final prefs = await SharedPreferences.getInstance();
-    final timestamp = prefs.getInt(_lastSyncKey);
+    final timestamp = _prefs.getInt(_lastSyncKey);
     return timestamp != null
         ? DateTime.fromMillisecondsSinceEpoch(timestamp)
         : null;
+  }
+
+  /// Process pending offline operations
+  Future<void> processOfflineOperations() async {
+    final operations = _prefs.getStringList(_offlineOperationsKey) ?? [];
+    if (operations.isEmpty) return;
+
+    for (final op in operations) {
+      try {
+        final decoded = json.decode(op) as Map<String, dynamic>;
+        final type = decoded['type'] as String;
+        final data = decoded['data'] as Map<String, dynamic>;
+
+        switch (type) {
+          case 'add':
+            await _firestore.collection('Entities').add(data);
+            break;
+          case 'delete':
+            await _firestore.collection('Entities').doc(data['id']).delete();
+            break;
+        }
+      } catch (e) {
+        debugPrint('Failed to process offline op: $e');
+        continue;
+      }
+    }
+
+    await _prefs.remove(_offlineOperationsKey);
+    await _updateLocalCache();
+  }
+
+  // Private methods
+  Future<void> _updateLocalCache() async {
+    try {
+      final parties = await fetchEntities();
+      await cacheEntities(parties);
+    } catch (e) {
+      debugPrint('Cache update failed: $e');
+    }
+  }
+
+  Future<void> _cacheOfflineOperation({
+    required String type,
+    required Map<String, dynamic> data,
+  }) async {
+    try {
+      final operations = _prefs.getStringList(_offlineOperationsKey) ?? [];
+      operations.add(json.encode({'type': type, 'data': data}));
+      await _prefs.setStringList(_offlineOperationsKey, operations);
+    } catch (e) {
+      debugPrint('Failed to cache offline op: $e');
+      throw Exception('Failed to queue offline operation');
+    }
   }
 }

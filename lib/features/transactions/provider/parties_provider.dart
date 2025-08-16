@@ -123,6 +123,7 @@ class PartiesProvider with ChangeNotifier {
         date: date.isEmpty ? DateFormat.yMMMd().format(DateTime.now()) : date,
         isCreditInfoSelected: isCreditInfoSelected,
         toReceive: toReceive,
+        category: '',
       );
 
       clearForm();
@@ -168,18 +169,18 @@ class PartiesProvider with ChangeNotifier {
     );
   }
 
-  Future<void> _loadCachedData() async {
-    try {
-      _cachedParties = await _repository.getCachedEntities();
-      if (_parties.isEmpty) {
-        _parties = _cachedParties;
-        _isLoading = false;
-        notifyListeners();
-      }
-    } catch (e) {
-      print('Error loading cached data: $e');
-    }
-  }
+  // Future<void> _loadCachedData() async {
+  //   try {
+  //     _cachedParties = await _repository.getCachedEntities();
+  //     if (_parties.isEmpty) {
+  //       _parties = _cachedParties;
+  //       _isLoading = false;
+  //       notifyListeners();
+  //     }
+  //   } catch (e) {
+  //     print('Error loading cached data: $e');
+  //   }
+  // }
 
   Future<void> _checkConnectivity() async {
     _isOnline = await _repository.isOnline();
@@ -206,10 +207,53 @@ class PartiesProvider with ChangeNotifier {
   }
 
   Future<void> refreshData() async {
-    _isLoading = true;
-    notifyListeners();
-    await _checkConnectivity();
-    await _loadCachedData();
+    try {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+
+      // Check connectivity status
+      await _checkConnectivity();
+
+      if (_isOnline) {
+        try {
+          // Try to fetch fresh data from server
+          final freshParties = await _repository.fetchEntities();
+          _parties = freshParties;
+
+          // Update cache with fresh data
+          await _repository.cacheEntities(freshParties);
+          _error = null;
+        } catch (e) {
+          debugPrint('Online refresh failed: $e');
+          _error = 'Failed to fetch latest data';
+          // Fall back to cached data if online fetch fails
+          await _loadCachedData();
+        }
+      } else {
+        // Offline mode - load from cache only
+        await _loadCachedData();
+        _error = 'Offline - showing cached data';
+      }
+    } catch (e) {
+      debugPrint('Refresh error: $e');
+      _error = 'Failed to refresh data';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> _loadCachedData() async {
+    try {
+      _cachedParties = await _repository.getCachedEntities();
+      _parties = _cachedParties;
+    } catch (e) {
+      debugPrint('Cache load error: $e');
+      _error = 'Failed to load cached data';
+      _parties = []; // Clear parties if cache fails
+      throw e;
+    }
   }
 
   double get totalToReceive {

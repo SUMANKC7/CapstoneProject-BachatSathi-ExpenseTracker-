@@ -12,7 +12,8 @@ void main() async {
   FirebaseFirestore.instance.settings = Settings(
     persistenceEnabled: true, //Enable offline cache
   );
-  runApp(allProviders());
+  final providers = await allProviders();
+  runApp(providers);
 }
 
 class MyApp extends StatelessWidget {

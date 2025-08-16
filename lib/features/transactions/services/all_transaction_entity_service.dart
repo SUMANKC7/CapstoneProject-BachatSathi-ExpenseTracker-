@@ -88,6 +88,28 @@ class AddTransactionRepo {
         });
   }
 
+  /// Get a single transaction by ID
+  Future<AllTransactionModel?> getTransactionById(String transactionId) async {
+    try {
+      print('Repository getTransactionById called with ID: $transactionId');
+
+      final doc = await _firestore
+          .collection('Transactions')
+          .doc(transactionId)
+          .get();
+
+      if (doc.exists && doc.data() != null) {
+        return AllTransactionModel.fromMap(doc.data()!, doc.id);
+      } else {
+        print('Transaction with ID $transactionId not found');
+        return null;
+      }
+    } catch (e) {
+      print('Error getting transaction by ID: $e');
+      throw Exception("Failed to get transaction: $e");
+    }
+  }
+
   /// Get cached transactions when offline
   Future<List<AllTransactionModel>> getCachedTransactions() async {
     try {
@@ -113,9 +135,17 @@ class AddTransactionRepo {
   /// Delete transaction by ID
   Future<void> deleteTransaction(String id) async {
     try {
+      print('Repository deleteTransaction called with ID: $id');
+
       await _firestore.collection('Transactions').doc(id).delete();
+
+      print('Transaction deleted successfully from Firestore');
+
       await _updateLocalCache();
+
+      print('Local cache updated after deletion');
     } catch (e) {
+      print('Error deleting transaction: $e');
       throw Exception("Failed to delete transaction: $e");
     }
   }
@@ -123,15 +153,77 @@ class AddTransactionRepo {
   /// Update transaction
   Future<void> updateTransaction(String id, Map<String, dynamic> data) async {
     try {
+      print('Repository updateTransaction called with ID: $id');
+      print('Update data: $data');
+
       // Ensure updated date is stored as Timestamp if provided
       if (data.containsKey('date') && data['date'] is DateTime) {
         data['date'] = Timestamp.fromDate(data['date']);
       }
 
+      // Add updatedAt timestamp
+      data['updatedAt'] = FieldValue.serverTimestamp();
+
       await _firestore.collection('Transactions').doc(id).update(data);
+
+      print('Transaction updated successfully in Firestore');
+
       await _updateLocalCache();
+
+      print('Local cache updated after update');
     } catch (e) {
+      print('Error updating transaction: $e');
       throw Exception("Failed to update transaction: $e");
+    }
+  }
+
+  /// Batch update multiple transactions (useful for bulk operations)
+  Future<void> batchUpdateTransactions(
+    List<Map<String, dynamic>> updates,
+  ) async {
+    try {
+      final batch = _firestore.batch();
+
+      for (var update in updates) {
+        final id = update['id'];
+        final data = Map<String, dynamic>.from(update);
+        data.remove('id');
+
+        if (data.containsKey('date') && data['date'] is DateTime) {
+          data['date'] = Timestamp.fromDate(data['date']);
+        }
+
+        data['updatedAt'] = FieldValue.serverTimestamp();
+
+        batch.update(_firestore.collection('Transactions').doc(id), data);
+      }
+
+      await batch.commit();
+      await _updateLocalCache();
+
+      print('Batch update completed successfully');
+    } catch (e) {
+      print('Error in batch update: $e');
+      throw Exception("Failed to batch update transactions: $e");
+    }
+  }
+
+  /// Batch delete multiple transactions
+  Future<void> batchDeleteTransactions(List<String> transactionIds) async {
+    try {
+      final batch = _firestore.batch();
+
+      for (String id in transactionIds) {
+        batch.delete(_firestore.collection('Transactions').doc(id));
+      }
+
+      await batch.commit();
+      await _updateLocalCache();
+
+      print('Batch delete completed successfully');
+    } catch (e) {
+      print('Error in batch delete: $e');
+      throw Exception("Failed to batch delete transactions: $e");
     }
   }
 
@@ -194,5 +286,47 @@ class AddTransactionRepo {
     return timestamp != null
         ? DateTime.fromMillisecondsSinceEpoch(timestamp)
         : null;
+  }
+
+  /// Get transactions by category
+  Future<List<AllTransactionModel>> getTransactionsByCategory(
+    String category,
+  ) async {
+    try {
+      final snapshot = await _firestore
+          .collection('Transactions')
+          .where('category', isEqualTo: category)
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      return snapshot.docs.map((doc) {
+        return AllTransactionModel.fromMap(doc.data(), doc.id);
+      }).toList();
+    } catch (e) {
+      print('Error getting transactions by category: $e');
+      throw Exception("Failed to get transactions by category: $e");
+    }
+  }
+
+  /// Get transactions within date range
+  Future<List<AllTransactionModel>> getTransactionsByDateRange(
+    DateTime startDate,
+    DateTime endDate,
+  ) async {
+    try {
+      final snapshot = await _firestore
+          .collection('Transactions')
+          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+          .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endDate))
+          .orderBy('date', descending: true)
+          .get();
+
+      return snapshot.docs.map((doc) {
+        return AllTransactionModel.fromMap(doc.data(), doc.id);
+      }).toList();
+    } catch (e) {
+      print('Error getting transactions by date range: $e');
+      throw Exception("Failed to get transactions by date range: $e");
+    }
   }
 }

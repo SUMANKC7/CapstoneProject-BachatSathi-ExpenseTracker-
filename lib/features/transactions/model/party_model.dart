@@ -59,6 +59,24 @@ class AddParty {
     );
   }
 
+  // Convert AddParty to a cache-friendly JSON format
+  Map<String, dynamic> toCacheJson() {
+    return {
+      'id': id,
+      'name': name,
+      'phone': phone,
+      'email': email,
+      'address': address,
+      'openingBalance': openingBalance,
+      'date': date.toIso8601String(), // Convert DateTime to string
+      'isCreditInfoSelected': isCreditInfoSelected,
+      'toReceive': toReceive,
+      'createdAt': createdAt?.millisecondsSinceEpoch,
+      'category': category,
+      // Note: We don't store Color as it's generated from name
+    };
+  }
+
   static Color _generateColor(String name) {
     if (name.isEmpty) return Colors.grey;
     return Colors.primaries[name.length % Colors.primaries.length];
@@ -76,6 +94,7 @@ class AddParty {
     bool? toReceive,
     DateTime? createdAt,
     Color? avatarColor,
+    String? category,
   }) {
     return AddParty(
       id: id ?? this.id,
@@ -89,7 +108,7 @@ class AddParty {
       toReceive: toReceive ?? this.toReceive,
       createdAt: createdAt ?? this.createdAt,
       avatarColor: avatarColor ?? this.avatarColor,
-      category: category,
+      category: category ?? this.category,
     );
   }
 }

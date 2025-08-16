@@ -12,36 +12,106 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-class Home extends StatelessWidget {
+class Home extends StatefulWidget {
   const Home({super.key});
+
+  @override
+  State<Home> createState() => _HomeState();
+}
+
+class _HomeState extends State<Home> {
+  // Add refresh key to force StreamBuilder rebuild
+  int _refreshKey = 0;
+
+  // Callback method for when transactions are updated
+  void _onTransactionUpdated() {
+    setState(() {
+      _refreshKey++;
+    });
+
+    // Optional: Show feedback
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Transaction updated successfully'),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const MyAppBar(),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 15),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const TitleText(title: 'Today'),
-              const SpentTodayCard(),
-              const SizedBox(height: 20),
+      body: RefreshIndicator(
+        onRefresh: _refreshData,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 15),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const TitleText(title: 'Today'),
+                const SpentTodayCard(),
+                const SizedBox(height: 20),
 
-              // Calculate totals from the transaction stream
-              StreamBuilder<List<AllTransactionModel>>(
-                stream: context
-                    .read<AddTransactionProvider>()
-                    .repository
-                    .listenToTransactions(),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
+                // Calculate totals from the transaction stream
+                StreamBuilder<List<AllTransactionModel>>(
+                  key: ValueKey('totals_$_refreshKey'),
+                  stream: context
+                      .read<AddTransactionProvider>()
+                      .repository
+                      .listenToTransactions(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return Row(
+                        children: [
+                          RecieveGive(
+                            amount: "Rs.0",
+                            account: 'To Receive',
+                            onClicked: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => PartiesScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(width: 15),
+                          RecieveGive(
+                            amount: "Rs.0",
+                            account: "To Pay",
+                            onClicked: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => PartiesScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      );
+                    }
+
+                    final transactions = snapshot.data!;
+                    final income = transactions
+                        .where((t) => !t.expense)
+                        .fold(0.0, (sum, t) => sum + t.amount);
+                    final expenses = transactions
+                        .where((t) => t.expense)
+                        .fold(0.0, (sum, t) => sum + t.amount);
+
                     return Row(
                       children: [
                         RecieveGive(
-                          amount: "Rs.0",
-                          account: 'To Receive',
+                          amount:
+                              "Rs.${NumberFormat("#,##0.00").format(income)}",
+                          account: 'Income',
                           onClicked: () {
                             Navigator.push(
                               context,
@@ -51,10 +121,11 @@ class Home extends StatelessWidget {
                             );
                           },
                         ),
-                        SizedBox(width: 15),
+                        const SizedBox(width: 15),
                         RecieveGive(
-                          amount: "Rs.0",
-                          account: "To Pay",
+                          amount:
+                              "Rs.${NumberFormat("#,##0.00").format(expenses)}",
+                          account: "Expenses",
                           onClicked: () {
                             Navigator.push(
                               context,
@@ -66,127 +137,171 @@ class Home extends StatelessWidget {
                         ),
                       ],
                     );
-                  }
+                  },
+                ),
 
-                  final transactions = snapshot.data!;
-                  final income = transactions
-                      .where((t) => !t.expense)
-                      .fold(0.0, (sum, t) => sum + t.amount);
-                  final expenses = transactions
-                      .where((t) => t.expense)
-                      .fold(0.0, (sum, t) => sum + t.amount);
+                const SizedBox(height: 20),
+                const TitleText(title: "This month"),
+                const SizedBox(height: 10),
+                const IncomeExpenseToggle(
+                  firstIndex: 'Income',
+                  secondIndex: 'Expense',
+                ),
+                const SizedBox(height: 10),
 
-                  return Row(
-                    children: [
-                      RecieveGive(
-                        amount: "Rs.${income.toStringAsFixed(2)}",
-                        account: 'Income',
-                        onClicked: () {
-                          // Navigate to income transactions if needed
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => PartiesScreen(),
+                // Transaction list with toggle filter
+                Consumer2<AddTransactionProvider, SwitchExpenseProvider>(
+                  builder: (context, transactionProvider, switchProvider, _) {
+                    return StreamBuilder<List<AllTransactionModel>>(
+                      key: ValueKey('transactions_$_refreshKey'),
+                      stream: transactionProvider.repository
+                          .listenToTransactions(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20),
+                              child: CircularProgressIndicator(),
                             ),
                           );
-                        },
-                      ),
-                      const SizedBox(width: 15),
-                      RecieveGive(
-                        amount: "Rs.${expenses.toStringAsFixed(2)}",
-                        account: "Expenses",
-                        onClicked: () {
-                          // Navigate to expense transactions if needed
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => PartiesScreen(),
+                        }
+
+                        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                          return _buildEmptyState(switchProvider.selectedIndex);
+                        }
+
+                        final transactions = snapshot.data!;
+
+                        // Filter based on toggle
+                        final filteredTransactions = transactions.where((
+                          transaction,
+                        ) {
+                          return switchProvider.selectedIndex == 0
+                              ? !transaction
+                                    .expense // Show Income
+                              : transaction.expense; // Show Expense
+                        }).toList();
+
+                        if (filteredTransactions.isEmpty) {
+                          return _buildEmptyState(switchProvider.selectedIndex);
+                        }
+
+                        return Column(
+                          children: [
+                            // Show count of transactions
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    "${filteredTransactions.length} ${switchProvider.selectedIndex == 0 ? "Income" : "Expense"} records",
+                                    style: TextStyle(
+                                      color: Colors.grey.shade600,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  Text(
+                                    "Tap to edit",
+                                    style: TextStyle(
+                                      color: Colors.grey.shade500,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          );
-                        },
-                      ),
-                    ],
-                  );
-                },
-              ),
-
-              const SizedBox(height: 20),
-              const TitleText(title: "This month"),
-              const SizedBox(height: 10),
-              const IncomeExpenseToggle(
-                firstIndex: 'Income',
-                secondIndex: 'Expense',
-              ),
-              const SizedBox(height: 10),
-
-              // Transaction list with toggle filter
-              Consumer2<AddTransactionProvider, SwitchExpenseProvider>(
-                builder: (context, transactionProvider, switchProvider, _) {
-                  return StreamBuilder<List<AllTransactionModel>>(
-                    stream: transactionProvider.repository
-                        .listenToTransactions(),
-                    builder: (context, snapshot) {
-                      if (!snapshot.hasData) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-
-                      final transactions = snapshot.data!;
-
-                      // Filter based on toggle
-                      final filteredTransactions = transactions.where((
-                        transaction,
-                      ) {
-                        return switchProvider.selectedIndex == 0
-                            ? !transaction
-                                  .expense // Show Income
-                            : transaction.expense; // Show Expense
-                      }).toList();
-
-                      if (filteredTransactions.isEmpty) {
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 20),
-                          child: Center(
-                            child: Text(
-                              "No ${switchProvider.selectedIndex == 0 ? "Income" : "Expense"} records found.",
-                              style: TextStyle(color: Colors.grey.shade600),
+                            ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: filteredTransactions.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 8),
+                              itemBuilder: (context, index) {
+                                final transaction = filteredTransactions[index];
+                                return TransactionsWidgets(
+                                  icon: transaction.expense
+                                      ? Icons.arrow_upward
+                                      : Icons.arrow_downward,
+                                  title: transaction.title,
+                                  subtitle: DateFormat.yMMMd().format(
+                                    transaction.date,
+                                  ),
+                                  cost:
+                                      "Rs. ${NumberFormat("#,##0.00").format(transaction.amount)}",
+                                  amountColor: transaction.expense
+                                      ? Colors.red
+                                      : Colors.green,
+                                  transaction:
+                                      transaction, // Pass the transaction model
+                                  onTransactionUpdated:
+                                      _onTransactionUpdated, // Pass the callback
+                                );
+                              },
                             ),
-                          ),
+                          ],
                         );
-                      }
+                      },
+                    );
+                  },
+                ),
 
-                      return ListView.separated(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: filteredTransactions.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 8),
-                        itemBuilder: (context, index) {
-                          final transaction = filteredTransactions[index];
-                          return TransactionsWidgets(
-                            icon: transaction.expense
-                                ? Icons.arrow_upward
-                                : Icons.arrow_downward,
-                            title: transaction.title,
-                            subtitle: DateFormat.yMMMd().format(
-                              transaction.date,
-                            ),
-                            cost:
-                                "Rs. ${transaction.amount.toStringAsFixed(2)}",
-                            amountColor: transaction.expense
-                                ? Colors.red
-                                : Colors.green,
-                          );
-                        },
-                      );
-                    },
-                  );
-                },
-              ),
-
-              const SizedBox(height: 14),
-            ],
+                const SizedBox(height: 14),
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
+
+  Widget _buildEmptyState(int selectedIndex) {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(40),
+            ),
+            child: Icon(
+              selectedIndex == 0 ? Icons.trending_up : Icons.trending_down,
+              size: 40,
+              color: Colors.grey[400],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            "No ${selectedIndex == 0 ? "Income" : "Expense"} Records",
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "Start by adding your first ${selectedIndex == 0 ? "income" : "expense"} transaction.",
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Method for pull-to-refresh
+  Future<void> _refreshData() async {
+    setState(() {
+      _refreshKey++;
+    });
+
+    // Add a small delay to show refresh indicator
+    await Future.delayed(const Duration(milliseconds: 500));
   }
 }
