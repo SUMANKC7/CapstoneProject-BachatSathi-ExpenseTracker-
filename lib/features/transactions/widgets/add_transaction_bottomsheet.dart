@@ -172,10 +172,12 @@ class _AddTransactionBottomsheetState extends State<AddTransactionBottomsheet> {
                   decimal: true,
                 ),
                 validator: (value) {
-                  if (value == null || value.isEmpty)
+                  if (value == null || value.isEmpty) {
                     return 'Please enter amount';
-                  if (double.tryParse(value) == null)
+                  }
+                  if (double.tryParse(value) == null) {
                     return 'Enter valid amount';
+                  }
                   return null;
                 },
               ),
@@ -197,8 +199,9 @@ class _AddTransactionBottomsheetState extends State<AddTransactionBottomsheet> {
                   ),
                 ),
                 validator: (value) {
-                  if (value == null || value.isEmpty)
+                  if (value == null || value.isEmpty) {
                     return 'Please enter title';
+                  }
                   return null;
                 },
               ),

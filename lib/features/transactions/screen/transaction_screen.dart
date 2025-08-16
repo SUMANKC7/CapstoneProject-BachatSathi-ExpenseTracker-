@@ -1,13 +1,13 @@
 import 'package:expensetrack/core/appcolors.dart';
+import 'package:expensetrack/features/transactions/model/transaction_model.dart';
+import 'package:expensetrack/features/transactions/provider/add_entity_provider.dart';
 import 'package:expensetrack/features/transactions/widgets/add_transaction_bottomsheet.dart';
 import 'package:expensetrack/features/transactions/provider/parties_provider.dart';
-import 'package:expensetrack/features/transactions/model/party_model.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-// --- MAIN SCREEN WIDGET ---
 class TransactionScreen extends StatefulWidget {
   const TransactionScreen({super.key});
 
@@ -16,7 +16,6 @@ class TransactionScreen extends StatefulWidget {
 }
 
 class _TransactionScreenState extends State<TransactionScreen> {
-  // State for the filters
   final ValueNotifier<String> _selectedCategoryFilter = ValueNotifier('all');
   final ValueNotifier<String> _selectedDateFilter = ValueNotifier('This month');
   final ValueNotifier<String> _selectedSortFilter = ValueNotifier('latest');
@@ -36,28 +35,30 @@ class _TransactionScreenState extends State<TransactionScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F9),
       appBar: _buildAppBar(),
-      body: Consumer<PartiesProvider>(
-        builder: (context, partiesProvider, child) {
-          if (partiesProvider.isLoading) {
+      body: StreamBuilder<List<AllTransactionModel>>(
+        stream: context
+            .read<AddTransactionProvider>()
+            .repository
+            .listenToTransactions(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CupertinoActivityIndicator());
           }
 
-          if (partiesProvider.error != null) {
-            return _buildErrorState(partiesProvider.error!);
+          if (snapshot.hasError) {
+            return _buildErrorState(snapshot.error.toString());
           }
 
-          final parties = partiesProvider.parties;
-          if (parties.isEmpty) {
+          final transactions = snapshot.data ?? [];
+          if (transactions.isEmpty) {
             return _buildEmptyState();
           }
 
-          return _buildTransactionView(context, parties);
+          return _buildTransactionView(context, transactions);
         },
       ),
     );
   }
-
-  // --- UI BUILDING METHODS ---
 
   AppBar _buildAppBar() {
     return AppBar(
@@ -76,18 +77,17 @@ class _TransactionScreenState extends State<TransactionScreen> {
     );
   }
 
-  Widget _buildTransactionView(BuildContext context, List<AddParty> parties) {
-    // Calculate summaries based on the list of parties
-    final double toReceive = _calculateToReceive(parties);
-    final double toGive = _calculateToGive(parties);
-    final double balance = toReceive - toGive;
-
-    // Get unique categories/types for the filter button
-    final categories = _extractCategories(parties);
+  Widget _buildTransactionView(
+    BuildContext context,
+    List<AllTransactionModel> transactions,
+  ) {
+    final double income = _calculateIncome(transactions);
+    final double expenses = _calculateExpenses(transactions);
+    final double balance = income - expenses;
+    final categories = _extractCategories(transactions);
 
     return Column(
       children: [
-        // This part is scrollable
         Expanded(
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -101,8 +101,8 @@ class _TransactionScreenState extends State<TransactionScreen> {
               const _SectionHeader(title: "Summary"),
               const SizedBox(height: 12),
               _SummarySection(
-                toReceive: toReceive,
-                toGive: toGive,
+                toReceive: income,
+                toGive: expenses,
                 balance: balance,
               ),
               const SizedBox(height: 24),
@@ -115,13 +115,12 @@ class _TransactionScreenState extends State<TransactionScreen> {
               _TransactionList(
                 selectedCategoryNotifier: _selectedCategoryFilter,
                 selectedSortNotifier: _selectedSortFilter,
-                parties: parties,
+                transactions: transactions,
               ),
-              const SizedBox(height: 120), // Padding for the bottom buttons
+              const SizedBox(height: 120),
             ],
           ),
         ),
-        // This part is fixed at the bottom
         _FixedBottomButtons(
           onAddIncome: () => _openBottomSheet(context, 'Income', 0),
           onAddExpense: () => _openBottomSheet(context, 'Expense', 1),
@@ -179,7 +178,11 @@ class _TransactionScreenState extends State<TransactionScreen> {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
-                context.read<PartiesProvider>().refreshData();
+                // Refresh the stream
+                context
+                    .read<AddTransactionProvider>()
+                    .repository
+                    .listenToTransactions();
               },
               child: const Text('Retry'),
             ),
@@ -189,37 +192,31 @@ class _TransactionScreenState extends State<TransactionScreen> {
     );
   }
 
-  // --- HELPER & LOGIC METHODS ---
-
-  double _calculateToReceive(List<AddParty> parties) {
-    return parties
-        .where((party) => party.toReceive == true)
-        .fold(0.0, (sum, party) => sum + party.openingBalance);
+  double _calculateIncome(List<AllTransactionModel> transactions) {
+    return transactions
+        .where((transaction) => !transaction.expense)
+        .fold(0.0, (sum, transaction) => sum + transaction.amount);
   }
 
-  double _calculateToGive(List<AddParty> parties) {
-    return parties
-        .where((party) => party.toReceive == false)
-        .fold(0.0, (sum, party) => sum + party.openingBalance);
+  double _calculateExpenses(List<AllTransactionModel> transactions) {
+    return transactions
+        .where((transaction) => transaction.expense)
+        .fold(0.0, (sum, transaction) => sum + transaction.amount);
   }
 
-  Set<String> _extractCategories(List<AddParty> parties) {
+  Set<String> _extractCategories(List<AllTransactionModel> transactions) {
     final categories = <String>{};
-    for (final party in parties) {
-      // You can categorize by status or create custom categories
-      if (party.toReceive) {
-        categories.add('To Receive');
+    for (final transaction in transactions) {
+      if (transaction.expense) {
+        categories.add('Expense');
       } else {
-        categories.add('To Pay');
+        categories.add('Income');
       }
     }
     return categories;
   }
 }
 
-// --- REUSABLE & MODULAR WIDGETS ---
-
-// A consistent header style for sections
 class _SectionHeader extends StatelessWidget {
   final String title;
   const _SectionHeader({required this.title});
@@ -237,7 +234,6 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-// Date filter chips
 class _DateFilterSection extends StatelessWidget {
   final ValueNotifier<String> selectedFilter;
   const _DateFilterSection({required this.selectedFilter});
@@ -271,7 +267,6 @@ class _DateFilterSection extends StatelessWidget {
                 onSelected: (selected) {
                   if (selected) {
                     selectedFilter.value = filter;
-                    // TODO: Add logic to filter transactions by date
                   }
                 },
                 backgroundColor: AppColors.softTeal,
@@ -295,7 +290,6 @@ class _DateFilterSection extends StatelessWidget {
   }
 }
 
-// Summary cards section
 class _SummarySection extends StatelessWidget {
   final double toReceive;
   final double toGive;
@@ -315,7 +309,7 @@ class _SummarySection extends StatelessWidget {
           children: [
             Expanded(
               child: _SummaryCard(
-                title: 'To Receive',
+                title: 'Income',
                 amount: toReceive,
                 color: AppColors.green,
                 icon: Icons.arrow_downward,
@@ -324,7 +318,7 @@ class _SummarySection extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: _SummaryCard(
-                title: 'To Pay',
+                title: 'Expenses',
                 amount: toGive,
                 color: AppColors.expenseColor!,
                 icon: Icons.arrow_upward,
@@ -339,7 +333,6 @@ class _SummarySection extends StatelessWidget {
   }
 }
 
-// A single summary card
 class _SummaryCard extends StatelessWidget {
   final String title;
   final double amount;
@@ -411,7 +404,6 @@ class _SummaryCard extends StatelessWidget {
   }
 }
 
-// The header for the transaction list with the filter button
 class _TransactionListHeader extends StatelessWidget {
   final Set<String> categories;
   final ValueNotifier<String> selectedCategoryNotifier;
@@ -431,7 +423,6 @@ class _TransactionListHeader extends StatelessWidget {
         const _SectionHeader(title: "Transactions"),
         Row(
           children: [
-            // Category Filter Button
             if (categories.isNotEmpty)
               ValueListenableBuilder<String>(
                 valueListenable: selectedCategoryNotifier,
@@ -480,7 +471,7 @@ class _TransactionListHeader extends StatelessWidget {
                             context: context,
                             value: category,
                             label: category,
-                            icon: category == 'To Receive'
+                            icon: category == 'Income'
                                 ? Icons.arrow_downward_rounded
                                 : Icons.arrow_upward_rounded,
                             isSelected: selectedCategory == category,
@@ -491,10 +482,7 @@ class _TransactionListHeader extends StatelessWidget {
                   );
                 },
               ),
-
             const SizedBox(width: 8),
-
-            // Sort Button
             ValueListenableBuilder<String>(
               valueListenable: selectedSortNotifier,
               builder: (context, selectedSort, child) {
@@ -595,16 +583,15 @@ class _TransactionListHeader extends StatelessWidget {
   }
 }
 
-// The main list of transactions using parties data
 class _TransactionList extends StatelessWidget {
   final ValueNotifier<String> selectedCategoryNotifier;
   final ValueNotifier<String> selectedSortNotifier;
-  final List<AddParty> parties;
+  final List<AllTransactionModel> transactions;
 
   const _TransactionList({
     required this.selectedCategoryNotifier,
     required this.selectedSortNotifier,
-    required this.parties,
+    required this.transactions,
   });
 
   @override
@@ -615,29 +602,28 @@ class _TransactionList extends StatelessWidget {
         return ValueListenableBuilder<String>(
           valueListenable: selectedSortNotifier,
           builder: (context, selectedSort, _) {
-            // Filter by category
-            List<AddParty> filteredParties = selectedCategory == 'all'
-                ? parties
-                : parties.where((party) {
-                    final category = party.toReceive ? 'To Receive' : 'To Pay';
+            List<AllTransactionModel> filteredTransactions =
+                selectedCategory == 'all'
+                ? transactions
+                : transactions.where((transaction) {
+                    final category = transaction.expense ? 'Expense' : 'Income';
                     return category == selectedCategory;
                   }).toList();
 
-            // Sort
-            filteredParties.sort((a, b) {
+            filteredTransactions.sort((a, b) {
               if (selectedSort == 'latest') {
                 return b.date.compareTo(a.date);
               } else if (selectedSort == 'high_to_low') {
-                return b.openingBalance.compareTo(a.openingBalance);
+                return b.amount.compareTo(a.amount);
               } else if (selectedSort == 'low_to_high') {
-                return a.openingBalance.compareTo(b.openingBalance);
+                return a.amount.compareTo(b.amount);
               } else if (selectedSort == 'name_az') {
-                return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+                return a.title.toLowerCase().compareTo(b.title.toLowerCase());
               }
               return 0;
             });
 
-            if (filteredParties.isEmpty) {
+            if (filteredTransactions.isEmpty) {
               return const Padding(
                 padding: EdgeInsets.all(20.0),
                 child: Center(
@@ -649,14 +635,15 @@ class _TransactionList extends StatelessWidget {
               );
             }
 
-            // Build list
             return ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: filteredParties.length,
+              itemCount: filteredTransactions.length,
               separatorBuilder: (_, __) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
-                return _TransactionTile(party: filteredParties[index]);
+                return _TransactionTile(
+                  transaction: filteredTransactions[index],
+                );
               },
             );
           },
@@ -667,18 +654,18 @@ class _TransactionList extends StatelessWidget {
 }
 
 class _TransactionTile extends StatelessWidget {
-  final AddParty party;
-  const _TransactionTile({required this.party});
+  final AllTransactionModel transaction;
+  const _TransactionTile({required this.transaction});
 
   @override
   Widget build(BuildContext context) {
-    final isToReceive = party.toReceive;
-    final icon = isToReceive
-        ? Icons.arrow_downward_rounded
-        : Icons.arrow_upward_rounded;
-    final amountColor = isToReceive ? AppColors.green : AppColors.expenseColor;
+    final isExpense = transaction.expense;
+    final icon = isExpense
+        ? Icons.arrow_upward_rounded
+        : Icons.arrow_downward_rounded;
+    final amountColor = isExpense ? AppColors.expenseColor : AppColors.green;
     final costText =
-        "${isToReceive ? '+' : '-'}Rs. ${NumberFormat("#,##0.00").format(party.openingBalance)}";
+        "${isExpense ? '-' : '+'}Rs. ${NumberFormat("#,##0.00").format(transaction.amount)}";
 
     return Container(
       decoration: BoxDecoration(
@@ -699,19 +686,19 @@ class _TransactionTile extends StatelessWidget {
           child: Icon(icon, color: amountColor, size: 24),
         ),
         title: Text(
-          party.name,
+          transaction.title,
           style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              DateFormat.yMMMd().format(party.date),
+              DateFormat.yMMMd().format(transaction.date),
               style: TextStyle(color: Colors.grey[600], fontSize: 14),
             ),
-            if (party.category.isNotEmpty)
+            if (transaction.category.isNotEmpty)
               Text(
-                party.category,
+                transaction.category,
                 style: TextStyle(color: Colors.grey[500], fontSize: 12),
               ),
           ],
@@ -729,7 +716,7 @@ class _TransactionTile extends StatelessWidget {
               ),
             ),
             Text(
-              isToReceive ? 'To Receive' : 'To Pay',
+              isExpense ? 'Expense' : 'Income',
               style: TextStyle(color: Colors.grey[500], fontSize: 12),
             ),
           ],
@@ -739,7 +726,6 @@ class _TransactionTile extends StatelessWidget {
   }
 }
 
-// The fixed Add Income/Expense buttons at the bottom
 class _FixedBottomButtons extends StatelessWidget {
   final VoidCallback onAddIncome;
   final VoidCallback onAddExpense;
@@ -791,7 +777,6 @@ class _FixedBottomButtons extends StatelessWidget {
   }
 }
 
-// A single styled button for adding income or expense
 class _AddButton extends StatelessWidget {
   final Color color;
   final IconData icon;

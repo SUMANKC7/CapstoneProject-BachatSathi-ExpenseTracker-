@@ -4,7 +4,6 @@ import 'package:expensetrack/features/home/provider/switch_expense.dart';
 import 'package:expensetrack/features/transactions/provider/add_entity_provider.dart';
 import 'package:expensetrack/features/transactions/provider/parties_provider.dart';
 import 'package:expensetrack/features/transactions/provider/transaction_data_provider.dart';
-import 'package:expensetrack/features/transactions/screen/partyscreen.dart';
 import 'package:expensetrack/features/transactions/services/all_transaction_entity_service.dart';
 import 'package:expensetrack/features/transactions/services/entity_repository.dart';
 import 'package:expensetrack/main.dart';

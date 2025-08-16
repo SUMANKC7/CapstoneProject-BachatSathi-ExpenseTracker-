@@ -4,7 +4,8 @@ import 'package:expensetrack/features/home/widgets/income_expense_toggle.dart';
 import 'package:expensetrack/features/home/widgets/myappbar.dart';
 import 'package:expensetrack/features/home/widgets/receive_gain_widget.dart';
 import 'package:expensetrack/features/home/widgets/spent_today_card.dart';
-import 'package:expensetrack/features/transactions/provider/parties_provider.dart';
+import 'package:expensetrack/features/transactions/model/transaction_model.dart';
+import 'package:expensetrack/features/transactions/provider/add_entity_provider.dart';
 import 'package:expensetrack/features/transactions/screen/partyscreen.dart';
 import 'package:expensetrack/features/transactions/widgets/transaction_widget.dart';
 import 'package:flutter/material.dart';
@@ -28,34 +29,85 @@ class Home extends StatelessWidget {
               const SpentTodayCard(),
               const SizedBox(height: 20),
 
-              Row(
-                children: [
-                  RecieveGive(
-                    amount: "Rs.100",
-                    account: 'To Receive',
-                    onClicked: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => PartiesScreen(),
+              // Calculate totals from the transaction stream
+              StreamBuilder<List<AllTransactionModel>>(
+                stream: context
+                    .read<AddTransactionProvider>()
+                    .repository
+                    .listenToTransactions(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return Row(
+                      children: [
+                        RecieveGive(
+                          amount: "Rs.0",
+                          account: 'To Receive',
+                          onClicked: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => PartiesScreen(),
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
-                  const SizedBox(width: 15),
-                  RecieveGive(
-                    amount: "Rs.200",
-                    account: "To Pay",
-                    onClicked: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => PartiesScreen(),
+                        SizedBox(width: 15),
+                        RecieveGive(
+                          amount: "Rs.0",
+                          account: "To Pay",
+                          onClicked: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => PartiesScreen(),
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
-                ],
+                      ],
+                    );
+                  }
+
+                  final transactions = snapshot.data!;
+                  final income = transactions
+                      .where((t) => !t.expense)
+                      .fold(0.0, (sum, t) => sum + t.amount);
+                  final expenses = transactions
+                      .where((t) => t.expense)
+                      .fold(0.0, (sum, t) => sum + t.amount);
+
+                  return Row(
+                    children: [
+                      RecieveGive(
+                        amount: "Rs.${income.toStringAsFixed(2)}",
+                        account: 'Income',
+                        onClicked: () {
+                          // Navigate to income transactions if needed
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => PartiesScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(width: 15),
+                      RecieveGive(
+                        amount: "Rs.${expenses.toStringAsFixed(2)}",
+                        account: "Expenses",
+                        onClicked: () {
+                          // Navigate to expense transactions if needed
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => PartiesScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  );
+                },
               ),
 
               const SizedBox(height: 20),
@@ -67,47 +119,63 @@ class Home extends StatelessWidget {
               ),
               const SizedBox(height: 10),
 
-              Consumer2<PartiesProvider, SwitchExpenseProvider>(
-                builder: (context, partiesProvider, switchProvider, _) {
-                  // Filter based on toggle
-                  final filteredParties = partiesProvider.parties.where((
-                    party,
-                  ) {
-                    return switchProvider.selectedIndex == 0
-                        ? party
-                              .toReceive // Show "To Receive"
-                        : !party.toReceive; // Show "To Pay"
-                  }).toList();
+              // Transaction list with toggle filter
+              Consumer2<AddTransactionProvider, SwitchExpenseProvider>(
+                builder: (context, transactionProvider, switchProvider, _) {
+                  return StreamBuilder<List<AllTransactionModel>>(
+                    stream: transactionProvider.repository
+                        .listenToTransactions(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
 
-                  if (filteredParties.isEmpty) {
-                    return Padding(
-                      padding: const EdgeInsets.only(top: 20),
-                      child: Center(
-                        child: Text(
-                          "No ${switchProvider.selectedIndex == 0 ? "To Receive" : "To Pay"} records found.",
-                          style: TextStyle(color: Colors.grey.shade600),
-                        ),
-                      ),
-                    );
-                  }
+                      final transactions = snapshot.data!;
 
-                  return ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: filteredParties.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (context, index) {
-                      final party = filteredParties[index];
-                      return TransactionsWidgets(
-                        icon: party.toReceive
-                            ? Icons.arrow_downward
-                            : Icons.arrow_upward,
-                        title: party.name,
-                        subtitle: DateFormat.yMMMd().format(party.date),
-                        cost: "Rs. ${party.openingBalance}",
-                        amountColor: party.toReceive
-                            ? Colors.green
-                            : Colors.red,
+                      // Filter based on toggle
+                      final filteredTransactions = transactions.where((
+                        transaction,
+                      ) {
+                        return switchProvider.selectedIndex == 0
+                            ? !transaction
+                                  .expense // Show Income
+                            : transaction.expense; // Show Expense
+                      }).toList();
+
+                      if (filteredTransactions.isEmpty) {
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 20),
+                          child: Center(
+                            child: Text(
+                              "No ${switchProvider.selectedIndex == 0 ? "Income" : "Expense"} records found.",
+                              style: TextStyle(color: Colors.grey.shade600),
+                            ),
+                          ),
+                        );
+                      }
+
+                      return ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: filteredTransactions.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        itemBuilder: (context, index) {
+                          final transaction = filteredTransactions[index];
+                          return TransactionsWidgets(
+                            icon: transaction.expense
+                                ? Icons.arrow_upward
+                                : Icons.arrow_downward,
+                            title: transaction.title,
+                            subtitle: DateFormat.yMMMd().format(
+                              transaction.date,
+                            ),
+                            cost:
+                                "Rs. ${transaction.amount.toStringAsFixed(2)}",
+                            amountColor: transaction.expense
+                                ? Colors.red
+                                : Colors.green,
+                          );
+                        },
                       );
                     },
                   );
