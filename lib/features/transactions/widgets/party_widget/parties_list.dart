@@ -1,7 +1,6 @@
 import 'package:expensetrack/features/transactions/widgets/party_widget/parties_dialog_utils.dart';
 import 'package:expensetrack/features/transactions/widgets/party_widget/party_card.dart';
 import 'package:flutter/material.dart';
-import 'package:expensetrack/features/transactions/model/party_model.dart';
 import 'package:expensetrack/features/transactions/provider/parties_provider.dart';
 import 'package:provider/provider.dart';
 

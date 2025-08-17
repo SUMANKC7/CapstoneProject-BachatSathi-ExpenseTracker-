@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:expensetrack/auth/provider/auth_provider.dart';
+import 'package:expensetrack/features/chart/provider/chart_provider.dart';
 import 'package:expensetrack/features/home/provider/bottom_nav_provider.dart';
 import 'package:expensetrack/features/home/provider/switch_expense.dart';
 import 'package:expensetrack/features/transactions/provider/add_entity_provider.dart';
@@ -43,6 +44,13 @@ Future<MultiProvider> allProviders() async {
             AddTransactionProvider(context.read<AddTransactionRepo>()),
         update: (context, repository, previous) =>
             previous ?? AddTransactionProvider(repository),
+      ),
+
+      ChangeNotifierProvider(
+        create: (context) => ChartProvider(
+          AddTransactionRepo(), // Your transaction repository
+          EntityRepositoryService(prefs: prefs), // Your entity repository
+        ),
       ),
     ],
     child: MyApp(),

@@ -252,7 +252,7 @@ class PartiesProvider with ChangeNotifier {
       debugPrint('Cache load error: $e');
       _error = 'Failed to load cached data';
       _parties = []; // Clear parties if cache fails
-      throw e;
+      rethrow;
     }
   }
 
