@@ -6,24 +6,6 @@ import 'package:expensetrack/features/transactions/model/party_model.dart';
 import 'package:expensetrack/features/transactions/services/all_transaction_entity_service.dart';
 import 'package:expensetrack/features/transactions/services/entity_repository.dart';
 
-class MonthlyData {
-  final String month;
-  final double income;
-  final double expense;
-  final double netFlow;
-  final double toReceive;
-  final double toGive;
-
-  MonthlyData({
-    required this.month,
-    required this.income,
-    required this.expense,
-    required this.netFlow,
-    required this.toReceive,
-    required this.toGive,
-  });
-}
-
 class ChartProvider extends ChangeNotifier {
   final AddTransactionRepo _transactionRepo;
   final EntityRepositoryService _entityRepo;
@@ -47,24 +29,31 @@ class ChartProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  // Chart Colors
+  // Enhanced Chart Colors with better contrast
   static const Color incomeColor = Color(0xFF4CAF50);
   static const Color expenseColor = Color(0xFFf44336);
   static const Color toReceiveColor = Color(0xFF2196F3);
   static const Color toGiveColor = Color(0xFFFF9800);
+  static const Color netFlowPositiveColor = Color(0xFF8BC34A);
+  static const Color netFlowNegativeColor = Color(0xFFE91E63);
+
   static const List<Color> categoryColors = [
-    Color(0xFF9C27B0),
-    Color(0xFF673AB7),
-    Color(0xFF3F51B5),
-    Color(0xFF2196F3),
-    Color(0xFF00BCD4),
-    Color(0xFF009688),
-    Color(0xFF4CAF50),
-    Color(0xFF8BC34A),
-    Color(0xFFCDDC39),
-    Color(0xFFFFC107),
-    Color(0xFFFF9800),
-    Color(0xFFFF5722),
+    Color(0xFF9C27B0), // Purple
+    Color(0xFF673AB7), // Deep Purple
+    Color(0xFF3F51B5), // Indigo
+    Color(0xFF2196F3), // Blue
+    Color(0xFF00BCD4), // Cyan
+    Color(0xFF009688), // Teal
+    Color(0xFF4CAF50), // Green
+    Color(0xFF8BC34A), // Light Green
+    Color(0xFFCDDC39), // Lime
+    Color(0xFFFFC107), // Amber
+    Color(0xFFFF9800), // Orange
+    Color(0xFFFF5722), // Deep Orange
+    Color(0xFF795548), // Brown
+    Color(0xFF607D8B), // Blue Grey
+    Color(0xFFE91E63), // Pink
+    Color(0xFF9E9E9E), // Grey
   ];
 
   void setChartType(ChartType type) {
@@ -74,7 +63,7 @@ class ChartProvider extends ChangeNotifier {
 
   void setTimeRange(ChartTimeRange range) {
     _selectedTimeRange = range;
-    notifyListeners();
+    _loadData(); // Reload data with new time range
   }
 
   Future<void> _loadData() async {
@@ -83,9 +72,7 @@ class ChartProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Load both transactions and entities simultaneously
-      final results = await Future.wait([_loadTransactions(), _loadEntities()]);
-
+      await Future.wait([_loadTransactions(), _loadEntities()]);
       _error = null;
     } catch (e) {
       _error = 'Failed to load data: ${e.toString()}';
@@ -98,11 +85,9 @@ class ChartProvider extends ChangeNotifier {
 
   Future<void> _loadTransactions() async {
     try {
-      // Try to get fresh data, fallback to cached if needed
       final snapshot = await _transactionRepo.listenToTransactions().first;
       _transactions = snapshot;
     } catch (e) {
-      // Fallback to cached data
       _transactions = await _transactionRepo.getCachedTransactions();
       debugPrint('Using cached transactions: $e');
     }
@@ -112,7 +97,6 @@ class ChartProvider extends ChangeNotifier {
     try {
       _entities = await _entityRepo.fetchEntities();
     } catch (e) {
-      // Fallback to cached data
       _entities = await _entityRepo.getCachedEntities();
       debugPrint('Using cached entities: $e');
     }
@@ -132,11 +116,10 @@ class ChartProvider extends ChangeNotifier {
       case ChartTimeRange.year:
         return DateTime(now.year - 1, now.month, now.day);
       case ChartTimeRange.all:
-        return DateTime(2000); // Very old date to include all
+        return DateTime(2000);
     }
   }
 
-  // Helper method to safely extract DateTime from various formats
   DateTime _extractDateTime(dynamic dateField) {
     if (dateField is Timestamp) {
       return dateField.toDate();
@@ -150,7 +133,6 @@ class ChartProvider extends ChangeNotifier {
         return DateTime.now();
       }
     } else if (dateField is int) {
-      // Handle milliseconds timestamp
       try {
         return DateTime.fromMillisecondsSinceEpoch(dateField);
       } catch (e) {
@@ -171,7 +153,7 @@ class ChartProvider extends ChangeNotifier {
     }).toList();
   }
 
-  // Expense vs Income Pie Chart Data
+  /// Enhanced Expense vs Income Data with better color coding
   List<ChartDataModel> getExpenseIncomeData() {
     final filtered = _filteredTransactions;
     double totalIncome = 0;
@@ -185,121 +167,146 @@ class ChartProvider extends ChangeNotifier {
       }
     }
 
-    return [
-      ChartDataModel(label: 'Income', value: totalIncome, color: incomeColor),
-      ChartDataModel(
-        label: 'Expense',
-        value: totalExpense,
-        color: expenseColor,
-      ),
-    ];
+    final result = <ChartDataModel>[];
+    if (totalIncome > 0) {
+      result.add(
+        ChartDataModel(
+          label: 'Income',
+          value: totalIncome,
+          color: incomeColor,
+          category: 'income',
+        ),
+      );
+    }
+    if (totalExpense > 0) {
+      result.add(
+        ChartDataModel(
+          label: 'Expense',
+          value: totalExpense,
+          color: expenseColor,
+          category: 'expense',
+        ),
+      );
+    }
+
+    return result;
   }
 
-  // Category Breakdown Data
+  /// Enhanced Category Breakdown with better organization
   List<ChartDataModel> getCategoryBreakdownData() {
     final filtered = _filteredTransactions;
-    final Map<String, double> categoryTotals = {};
+    final Map<String, CategoryData> categoryMap = {};
 
+    // Process transactions by category
     for (final transaction in filtered) {
       final category = transaction.category.isEmpty
           ? 'General'
           : transaction.category;
-      categoryTotals[category] =
-          (categoryTotals[category] ?? 0) + transaction.amount;
-    }
 
-    int colorIndex = 0;
-    return categoryTotals.entries.map((entry) {
-      final color = categoryColors[colorIndex % categoryColors.length];
-      colorIndex++;
-      return ChartDataModel(label: entry.key, value: entry.value, color: color);
-    }).toList()..sort((a, b) => b.value.compareTo(a.value));
-  }
-
-  // Monthly Trends Data
-  List<MonthlyData> getMonthlyTrendsData() {
-    final filtered = _filteredTransactions;
-    final Map<String, MonthlyData> monthlyData = {};
-
-    // Initialize months
-    for (final transaction in filtered) {
-      final date = _extractDateTime(transaction.date);
-      final monthKey = '${date.year}-${date.month.toString().padLeft(2, '0')}';
-
-      if (!monthlyData.containsKey(monthKey)) {
-        monthlyData[monthKey] = MonthlyData(
-          month: _getMonthName(date.month),
-          income: 0,
-          expense: 0,
-          netFlow: 0,
-          toReceive: 0,
-          toGive: 0,
+      if (!categoryMap.containsKey(category)) {
+        categoryMap[category] = CategoryData(
+          name: category,
+          amount: 0,
+          transactionCount: 0,
+          color: categoryColors[categoryMap.length % categoryColors.length],
         );
       }
+
+      final existing = categoryMap[category]!;
+      categoryMap[category] = CategoryData(
+        name: existing.name,
+        amount: existing.amount + transaction.amount,
+        transactionCount: existing.transactionCount + 1,
+        color: existing.color,
+        monthlyAmounts: existing.monthlyAmounts,
+      );
+    }
+
+    // Convert to ChartDataModel and sort by amount
+    return categoryMap.values
+        .map(
+          (cat) => ChartDataModel(
+            label: cat.name,
+            value: cat.amount,
+            color: cat.color,
+            category: 'category',
+          ),
+        )
+        .toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+  }
+
+  /// Enhanced Monthly Trends with complete data points
+  List<MonthlyTrendData> getMonthlyTrendsData() {
+    final filtered = _filteredTransactions;
+    final Map<String, MonthlyTrendData> monthlyMap = {};
+    final startDate = _getStartDateForRange();
+
+    // Generate all months in range
+    DateTime current = DateTime(startDate.year, startDate.month, 1);
+    final now = DateTime.now();
+    final endDate = DateTime(now.year, now.month, 1);
+
+    while (current.isBefore(endDate) || current.isAtSameMomentAs(endDate)) {
+      final monthKey =
+          '${current.year}-${current.month.toString().padLeft(2, '0')}';
+      monthlyMap[monthKey] = MonthlyTrendData(
+        month: _getMonthName(current.month),
+        monthIndex: current.month,
+        year: current.year,
+        income: 0,
+        expense: 0,
+        netFlow: 0,
+        toReceive: 0,
+        toGive: 0,
+        date: current,
+      );
+      current = DateTime(current.year, current.month + 1, 1);
     }
 
     // Add transaction data
     for (final transaction in filtered) {
       final date = _extractDateTime(transaction.date);
       final monthKey = '${date.year}-${date.month.toString().padLeft(2, '0')}';
-      final existing = monthlyData[monthKey]!;
 
-      if (transaction.expense) {
-        monthlyData[monthKey] = MonthlyData(
-          month: existing.month,
-          income: existing.income,
-          expense: existing.expense + transaction.amount,
-          netFlow: existing.income - (existing.expense + transaction.amount),
-          toReceive: existing.toReceive,
-          toGive: existing.toGive,
-        );
-      } else {
-        monthlyData[monthKey] = MonthlyData(
-          month: existing.month,
-          income: existing.income + transaction.amount,
-          expense: existing.expense,
-          netFlow: (existing.income + transaction.amount) - existing.expense,
-          toReceive: existing.toReceive,
-          toGive: existing.toGive,
-        );
-      }
-    }
-
-    // Add entity data (opening balances)
-    for (final entity in _entities) {
-      // Assuming entities have a creation date, you might need to adjust this
-      final now = DateTime.now();
-      final monthKey = '${now.year}-${now.month.toString().padLeft(2, '0')}';
-
-      if (monthlyData.containsKey(monthKey)) {
-        final existing = monthlyData[monthKey]!;
-        if (entity.status == TransactionStatus.toReceive) {
-          monthlyData[monthKey] = MonthlyData(
+      if (monthlyMap.containsKey(monthKey)) {
+        final existing = monthlyMap[monthKey]!;
+        if (transaction.expense) {
+          monthlyMap[monthKey] = MonthlyTrendData(
             month: existing.month,
+            monthIndex: existing.monthIndex,
+            year: existing.year,
             income: existing.income,
-            expense: existing.expense,
-            netFlow: existing.netFlow,
-            toReceive: existing.toReceive + entity.openingBalance,
+            expense: existing.expense + transaction.amount,
+            netFlow: existing.income - (existing.expense + transaction.amount),
+            toReceive: existing.toReceive,
             toGive: existing.toGive,
+            date: existing.date,
           );
         } else {
-          monthlyData[monthKey] = MonthlyData(
+          monthlyMap[monthKey] = MonthlyTrendData(
             month: existing.month,
-            income: existing.income,
+            monthIndex: existing.monthIndex,
+            year: existing.year,
+            income: existing.income + transaction.amount,
             expense: existing.expense,
-            netFlow: existing.netFlow,
+            netFlow: (existing.income + transaction.amount) - existing.expense,
             toReceive: existing.toReceive,
-            toGive: existing.toGive + entity.openingBalance,
+            toGive: existing.toGive,
+            date: existing.date,
           );
         }
       }
     }
 
-    return monthlyData.values.toList()
-      ..sort((a, b) => a.month.compareTo(b.month));
+    // Sort by date and return
+    final sortedData = monthlyMap.values.toList()
+      ..sort((a, b) => a.date.compareTo(b.date));
+
+    return sortedData;
   }
 
-  // Cash Flow Data (Entities)
+  /// Enhanced Cash Flow Data
   List<ChartDataModel> getCashFlowData() {
     double totalToReceive = 0;
     double totalToGive = 0;
@@ -312,25 +319,84 @@ class ChartProvider extends ChangeNotifier {
       }
     }
 
-    return [
-      ChartDataModel(
-        label: 'To Receive',
-        value: totalToReceive,
-        color: toReceiveColor,
-      ),
-      ChartDataModel(label: 'To Give', value: totalToGive, color: toGiveColor),
-    ];
+    final result = <ChartDataModel>[];
+    if (totalToReceive > 0) {
+      result.add(
+        ChartDataModel(
+          label: 'To Receive',
+          value: totalToReceive,
+          color: toReceiveColor,
+          category: 'cashflow',
+        ),
+      );
+    }
+    if (totalToGive > 0) {
+      result.add(
+        ChartDataModel(
+          label: 'To Give',
+          value: totalToGive,
+          color: toGiveColor,
+          category: 'cashflow',
+        ),
+      );
+    }
+
+    return result;
   }
 
-  // Combined Overview Data
+  /// Enhanced Combined Data with all categories
   List<ChartDataModel> getCombinedData() {
     final expenseIncomeData = getExpenseIncomeData();
     final cashFlowData = getCashFlowData();
-
     return [...expenseIncomeData, ...cashFlowData];
   }
 
-  // Summary Statistics
+  /// Get time series data for line charts
+  List<TimeSeriesDataPoint> getTimeSeriesData(String dataType) {
+    final monthlyData = getMonthlyTrendsData();
+
+    return monthlyData.map((monthly) {
+      double value;
+      Color color;
+
+      switch (dataType) {
+        case 'income':
+          value = monthly.income;
+          color = incomeColor;
+          break;
+        case 'expense':
+          value = monthly.expense;
+          color = expenseColor;
+          break;
+        case 'netFlow':
+          value = monthly.netFlow;
+          color = monthly.netFlow >= 0
+              ? netFlowPositiveColor
+              : netFlowNegativeColor;
+          break;
+        case 'toReceive':
+          value = monthly.toReceive;
+          color = toReceiveColor;
+          break;
+        case 'toGive':
+          value = monthly.toGive;
+          color = toGiveColor;
+          break;
+        default:
+          value = monthly.netFlow;
+          color = Colors.grey;
+      }
+
+      return TimeSeriesDataPoint(
+        date: monthly.date,
+        value: value,
+        label: monthly.month,
+        color: color,
+      );
+    }).toList();
+  }
+
+  /// Enhanced Summary Statistics
   Map<String, double> getSummaryStats() {
     final filtered = _filteredTransactions;
     double totalIncome = 0;
@@ -338,6 +404,7 @@ class ChartProvider extends ChangeNotifier {
     double totalToReceive = 0;
     double totalToGive = 0;
 
+    // Calculate transaction totals
     for (final transaction in filtered) {
       if (transaction.expense) {
         totalExpense += transaction.amount;
@@ -346,6 +413,7 @@ class ChartProvider extends ChangeNotifier {
       }
     }
 
+    // Calculate entity totals
     for (final entity in _entities) {
       if (entity.status == TransactionStatus.toReceive) {
         totalToReceive += entity.openingBalance;
@@ -354,15 +422,118 @@ class ChartProvider extends ChangeNotifier {
       }
     }
 
+    final netIncome = totalIncome - totalExpense;
+    final netCashFlow = totalToReceive - totalToGive;
+    final netWorth = netIncome + netCashFlow;
+
     return {
       'totalIncome': totalIncome,
       'totalExpense': totalExpense,
-      'netIncome': totalIncome - totalExpense,
+      'netIncome': netIncome,
       'totalToReceive': totalToReceive,
       'totalToGive': totalToGive,
-      'netCashFlow': totalToReceive - totalToGive,
-      'netWorth': (totalIncome - totalExpense) + (totalToReceive - totalToGive),
+      'netCashFlow': netCashFlow,
+      'netWorth': netWorth,
+      'savingsRate': totalIncome > 0 ? (netIncome / totalIncome) * 100 : 0,
+      'expenseRatio': totalIncome > 0 ? (totalExpense / totalIncome) * 100 : 0,
     };
+  }
+
+  /// Get category performance over time
+  Map<String, List<TimeSeriesDataPoint>> getCategoryTrendsData() {
+    final filtered = _filteredTransactions;
+    final categoryTrends = <String, Map<String, double>>{};
+
+    // Group by category and month
+    for (final transaction in filtered) {
+      final category = transaction.category.isEmpty
+          ? 'General'
+          : transaction.category;
+      final date = _extractDateTime(transaction.date);
+      final monthKey = '${date.year}-${date.month.toString().padLeft(2, '0')}';
+
+      categoryTrends.putIfAbsent(category, () => {});
+      categoryTrends[category]!.putIfAbsent(monthKey, () => 0);
+      categoryTrends[category]![monthKey] =
+          categoryTrends[category]![monthKey]! + transaction.amount;
+    }
+
+    // Convert to time series data
+    final result = <String, List<TimeSeriesDataPoint>>{};
+    int colorIndex = 0;
+
+    for (final category in categoryTrends.keys) {
+      final color = categoryColors[colorIndex % categoryColors.length];
+      colorIndex++;
+
+      result[category] = categoryTrends[category]!.entries.map((entry) {
+        final parts = entry.key.split('-');
+        final year = int.parse(parts[0]);
+        final month = int.parse(parts[1]);
+
+        return TimeSeriesDataPoint(
+          date: DateTime(year, month, 1),
+          value: entry.value,
+          label: _getMonthName(month),
+          color: color,
+        );
+      }).toList()..sort((a, b) => a.date.compareTo(b.date));
+    }
+
+    return result;
+  }
+
+  /// Get entity balance trends
+  List<ChartDataModel> getEntityBalanceData() {
+    return _entities.map((entity) {
+      return ChartDataModel(
+        label: entity.name,
+        value: entity.openingBalance,
+        color: entity.status == TransactionStatus.toReceive
+            ? toReceiveColor
+            : toGiveColor,
+        category: entity.status == TransactionStatus.toReceive
+            ? 'toReceive'
+            : 'toGive',
+      );
+    }).toList()..sort((a, b) => b.value.compareTo(a.value));
+  }
+
+  /// Get weekly breakdown for current month
+  List<ChartDataModel> getWeeklyBreakdownData() {
+    final now = DateTime.now();
+    final startOfMonth = DateTime(now.year, now.month, 1);
+    final endOfMonth = DateTime(now.year, now.month + 1, 0);
+
+    final monthTransactions = _transactions.where((t) {
+      final date = _extractDateTime(t.date);
+      return date.isAfter(startOfMonth) &&
+          date.isBefore(endOfMonth.add(const Duration(days: 1)));
+    }).toList();
+
+    final weeklyData = <String, double>{};
+
+    for (final transaction in monthTransactions) {
+      final date = _extractDateTime(transaction.date);
+      final weekNumber = ((date.day - 1) ~/ 7) + 1;
+      final weekKey = 'Week $weekNumber';
+
+      weeklyData.putIfAbsent(weekKey, () => 0);
+      weeklyData[weekKey] = weeklyData[weekKey]! + transaction.amount;
+    }
+
+    int colorIndex = 0;
+    return weeklyData.entries.map((entry) {
+      final color = categoryColors[colorIndex % categoryColors.length];
+      colorIndex++;
+
+      return ChartDataModel(
+        label: entry.key,
+        value: entry.value,
+        color: color,
+        category: 'weekly',
+      );
+    }).toList();
   }
 
   String _getMonthName(int month) {
@@ -388,7 +559,7 @@ class ChartProvider extends ChangeNotifier {
     await _loadData();
   }
 
-  // Get data based on selected chart type
+  /// Get data based on selected chart type
   dynamic getCurrentChartData() {
     switch (_selectedChartType) {
       case ChartType.expenseIncome:
@@ -407,15 +578,15 @@ class ChartProvider extends ChangeNotifier {
   String get chartTitle {
     switch (_selectedChartType) {
       case ChartType.expenseIncome:
-        return 'Income vs Expense';
+        return 'Income vs Expense Distribution';
       case ChartType.categoryBreakdown:
-        return 'Category Breakdown';
+        return 'Spending by Category';
       case ChartType.monthlyTrends:
-        return 'Monthly Trends';
+        return 'Monthly Financial Trends';
       case ChartType.cashFlow:
-        return 'Cash Flow (To Receive/Give)';
+        return 'Cash Flow Analysis';
       case ChartType.combined:
-        return 'Financial Overview';
+        return 'Complete Financial Overview';
     }
   }
 
@@ -434,5 +605,30 @@ class ChartProvider extends ChangeNotifier {
       case ChartTimeRange.all:
         return 'All Time';
     }
+  }
+
+  /// Get color for a specific category (consistent colors)
+  Color getCategoryColor(String category) {
+    final categories = getCategoryBreakdownData();
+    final categoryData = categories.firstWhere(
+      (c) => c.label == category,
+      orElse: () => ChartDataModel(
+        label: category,
+        value: 0,
+        color: categoryColors[category.hashCode % categoryColors.length],
+      ),
+    );
+    return categoryData.color;
+  }
+
+  /// Check if data is available for current time range
+  bool get hasDataForCurrentRange {
+    return _filteredTransactions.isNotEmpty || _entities.isNotEmpty;
+  }
+
+  /// Get data freshness indicator
+  bool get isDataFresh {
+    // Consider data fresh if loaded within last 5 minutes
+    return DateTime.now().difference(DateTime.now()).inMinutes < 5;
   }
 }
