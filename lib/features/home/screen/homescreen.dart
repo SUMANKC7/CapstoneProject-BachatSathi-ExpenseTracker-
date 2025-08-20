@@ -3,7 +3,7 @@ import 'package:expensetrack/features/chart/screen/financial_dashboard.dart';
 import 'package:expensetrack/features/entity/screen/addentity.dart';
 import 'package:expensetrack/features/home/provider/bottom_nav_provider.dart';
 import 'package:expensetrack/features/home/screen/home.dart';
-import 'package:expensetrack/features/settings/screen/settings_screen.dart';
+import 'package:expensetrack/features/other_assets/screen/financial_dashboard_screen.dart';
 import 'package:expensetrack/features/transactions/screen/transaction_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -22,7 +22,8 @@ class _HomescreenState extends State<Homescreen> {
     FinancialDashboard(),
     // BudgetScreen(),
     AddEntity(),
-    SettingsScreen(),
+    // SettingsScreen(),
+    FinancialDashboardScreen(),
   ];
   @override
   Widget build(BuildContext context) {

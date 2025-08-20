@@ -3,6 +3,7 @@ import 'package:expensetrack/auth/provider/auth_provider.dart';
 import 'package:expensetrack/features/chart/provider/chart_provider.dart';
 import 'package:expensetrack/features/home/provider/bottom_nav_provider.dart';
 import 'package:expensetrack/features/home/provider/switch_expense.dart';
+import 'package:expensetrack/features/other_assets/provider/financial_dashboard_provider.dart';
 import 'package:expensetrack/features/transactions/provider/add_entity_provider.dart';
 import 'package:expensetrack/features/transactions/provider/parties_provider.dart';
 import 'package:expensetrack/features/transactions/provider/transaction_data_provider.dart';
@@ -52,6 +53,8 @@ Future<MultiProvider> allProviders() async {
           EntityRepositoryService(prefs: prefs), // Your entity repository
         ),
       ),
+
+      ChangeNotifierProvider(create: (context) => FinancialDashboardProvider()),
     ],
     child: MyApp(),
   );

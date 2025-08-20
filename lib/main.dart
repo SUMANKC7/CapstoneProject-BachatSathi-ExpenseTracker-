@@ -1,17 +1,22 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:expensetrack/all_provider.dart';
 import 'package:expensetrack/features/home/screen/homescreen.dart';
+import 'package:expensetrack/firebase_options.dart';
 import 'package:expensetrack/route_generator.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await Firebase.initializeApp();
-  FirebaseFirestore.instance.settings = Settings(
-    persistenceEnabled: true, //Enable offline cache
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  if (!kIsWeb) {
+    FirebaseFirestore.instance.settings = const Settings(
+      persistenceEnabled: true,
+    );
+  }
+
   final providers = await allProviders();
   runApp(providers);
 }

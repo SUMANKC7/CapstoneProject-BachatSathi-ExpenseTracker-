@@ -171,7 +171,7 @@ class ChartCard extends StatelessWidget {
                 ],
               ),
             );
-          }).toList(),
+          }),
         ],
       ),
     );

@@ -1,4 +1,3 @@
-import 'package:expensetrack/features/chart/model/chart_model.dart';
 import 'package:expensetrack/features/chart/provider/chart_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
