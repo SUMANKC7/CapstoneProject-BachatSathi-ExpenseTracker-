@@ -8,12 +8,12 @@ class FinancialCard<T extends FinancialData> extends StatelessWidget {
   final VoidCallback? onTap;
 
   const FinancialCard({
-    Key? key,
+    super.key,
     required this.data,
     required this.icon,
     required this.color,
     this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

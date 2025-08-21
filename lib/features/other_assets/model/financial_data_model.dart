@@ -14,6 +14,7 @@ class StockData extends FinancialData {
   final double price;
   final double change;
   final double changePercent;
+  @override
   final DateTime timestamp;
   final double high;
   final double low;
@@ -92,6 +93,7 @@ class CryptoData extends FinancialData {
   final String targetCurrency;
   final double price;
   final double change24h;
+  @override
   final DateTime timestamp;
 
   CryptoData({
@@ -150,6 +152,7 @@ class GoldData extends FinancialData {
   final double price;
   final double change;
   final double changePercent;
+  @override
   final DateTime timestamp;
   final String currency;
 
@@ -209,6 +212,7 @@ class CurrencyExchangeData extends FinancialData {
   final String toCurrency;
   final double rate;
   final double change;
+  @override
   final DateTime timestamp;
 
   CurrencyExchangeData({
