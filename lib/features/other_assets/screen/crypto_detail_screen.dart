@@ -304,16 +304,21 @@ class _CryptoDetailScreenState extends State<CryptoDetailScreen>
                   padding: EdgeInsets.all(16),
                   child: Column(
                     children: [
-                      Text(
-                        'Crypto Portfolio Summary',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'Crypto Portfolio Summary',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                       SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      Wrap(
+                        alignment: WrapAlignment.spaceAround,
+                        spacing: 20,
+                        runSpacing: 16,
                         children: [
                           Column(
                             children: [
@@ -322,11 +327,14 @@ class _CryptoDetailScreenState extends State<CryptoDetailScreen>
                                 style: TextStyle(color: Colors.grey[600]),
                               ),
                               SizedBox(height: 4),
-                              Text(
-                                '\${totalValue.toStringAsFixed(2)}',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  '\$${totalValue.toStringAsFixed(2)}',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ],
@@ -338,14 +346,17 @@ class _CryptoDetailScreenState extends State<CryptoDetailScreen>
                                 style: TextStyle(color: Colors.grey[600]),
                               ),
                               SizedBox(height: 4),
-                              Text(
-                                '${totalGainLoss >= 0 ? '+' : ''}\${totalGainLoss.toStringAsFixed(2)}',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: totalGainLoss >= 0
-                                      ? Colors.green
-                                      : Colors.red,
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  '${totalGainLoss >= 0 ? '+' : ''}\$${totalGainLoss.toStringAsFixed(2)}',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: totalGainLoss >= 0
+                                        ? Colors.green
+                                        : Colors.red,
+                                  ),
                                 ),
                               ),
                             ],
@@ -388,7 +399,7 @@ class _CryptoDetailScreenState extends State<CryptoDetailScreen>
               showTitles: true,
               reservedSize: 80,
               getTitlesWidget: (value, meta) => Text(
-                '\${value.toStringAsFixed(0)}',
+                '\$${value.toStringAsFixed(0)}',
                 style: TextStyle(fontSize: 10),
               ),
             ),
@@ -502,42 +513,73 @@ class _CryptoDetailScreenState extends State<CryptoDetailScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            // Top row with symbol and quantity
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                Text(
-                  holding.symbol,
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    holding.symbol,
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                 ),
-                Text(
-                  '${holding.quantity.toStringAsFixed(8)} coins',
-                  style: TextStyle(color: Colors.grey[600]),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    '${holding.quantity.toStringAsFixed(8)} coins',
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
                 ),
               ],
             ),
             SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+
+            // Price information row
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Buy Price: \${holding.buyPrice.toStringAsFixed(4)}'),
-                    Text(
-                      'Current Price: \${currentCrypto.price.toStringAsFixed(4)}',
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'Buy Price: \$${holding.buyPrice.toStringAsFixed(4)}',
+                      ),
+                    ),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'Current Price: \$${currentCrypto.price.toStringAsFixed(4)}',
+                      ),
                     ),
                   ],
                 ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text('Invested: \${investedValue.toStringAsFixed(2)}'),
-                    Text('Current: \${currentValue.toStringAsFixed(2)}'),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'Invested: \$${investedValue.toStringAsFixed(2)}',
+                      ),
+                    ),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'Current: \$${currentValue.toStringAsFixed(2)}',
+                      ),
+                    ),
                   ],
                 ),
               ],
             ),
             SizedBox(height: 8),
+
+            // P&L section
             Container(
               padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
@@ -546,21 +588,28 @@ class _CryptoDetailScreenState extends State<CryptoDetailScreen>
                     : Colors.red.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  Text(
-                    'P&L: ${gainLoss >= 0 ? '+' : ''}\${gainLoss.toStringAsFixed(2)}',
-                    style: TextStyle(
-                      color: gainLoss >= 0 ? Colors.green : Colors.red,
-                      fontWeight: FontWeight.bold,
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      'P&L: ${gainLoss >= 0 ? '+' : ''}\$${gainLoss.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        color: gainLoss >= 0 ? Colors.green : Colors.red,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                  Text(
-                    '${gainLossPercent >= 0 ? '+' : ''}${gainLossPercent.toStringAsFixed(2)}%',
-                    style: TextStyle(
-                      color: gainLoss >= 0 ? Colors.green : Colors.red,
-                      fontWeight: FontWeight.bold,
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      '${gainLossPercent >= 0 ? '+' : ''}${gainLossPercent.toStringAsFixed(2)}%',
+                      style: TextStyle(
+                        color: gainLoss >= 0 ? Colors.green : Colors.red,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],

@@ -17,7 +17,7 @@ Future<MultiProvider> allProviders() async {
   final prefs = await SharedPreferences.getInstance();
   return MultiProvider(
     providers: [
-      // 1️⃣ Provide repositories first (these don't depend on anything)
+      // 1️Provide repositories first (these don't depend on anything)
       Provider<AddTransactionRepo>(create: (_) => AddTransactionRepo()),
       Provider<EntityRepositoryService>(
         create: (_) => EntityRepositoryService(
@@ -26,7 +26,7 @@ Future<MultiProvider> allProviders() async {
         ),
       ),
 
-      // 2️⃣ Basic ChangeNotifierProviders (these don't depend on other providers)
+      // 2️Basic ChangeNotifierProviders (these don't depend on other providers)
       ChangeNotifierProvider(create: (_) => BottomNavProvider()),
       ChangeNotifierProvider(create: (_) => TransactionDataProvider()),
       ChangeNotifierProvider(create: (_) => AuthProvider()),

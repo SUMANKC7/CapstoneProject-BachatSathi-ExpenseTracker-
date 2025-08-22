@@ -161,6 +161,24 @@ class _StockDetailScreenState extends State<StockDetailScreen>
     );
   }
 
+  // Add this method to fix the error
+  Widget _buildPortfolioMetric(String title, String value, {Color? color}) {
+    return Column(
+      children: [
+        Text(title, style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+        SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: color ?? Colors.black,
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -315,40 +333,16 @@ class _StockDetailScreenState extends State<StockDetailScreen>
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          Column(
-                            children: [
-                              Text(
-                                'Total Value',
-                                style: TextStyle(color: Colors.grey[600]),
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                '\$${(totalValue ?? 0).toStringAsFixed(2)}',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
+                          _buildPortfolioMetric(
+                            'Total Value',
+                            '\$${totalValue.toStringAsFixed(2)}',
                           ),
-                          Column(
-                            children: [
-                              Text(
-                                'Total P&L',
-                                style: TextStyle(color: Colors.grey[600]),
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                '${totalGainLoss >= 0 ? '+' : ''}\$${totalGainLoss.toStringAsFixed(2)}',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: totalGainLoss >= 0
-                                      ? Colors.green
-                                      : Colors.red,
-                                ),
-                              ),
-                            ],
+                          _buildPortfolioMetric(
+                            'Total P&L',
+                            '${totalGainLoss >= 0 ? '+' : ''}\$${totalGainLoss.toStringAsFixed(2)}',
+                            color: totalGainLoss >= 0
+                                ? Colors.green
+                                : Colors.red,
                           ),
                         ],
                       ),
@@ -515,9 +509,12 @@ class _StockDetailScreenState extends State<StockDetailScreen>
                   holding.symbol,
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                Text(
-                  '${holding.quantity} shares',
-                  style: TextStyle(color: Colors.grey[600]),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    '${holding.quantity} shares',
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
                 ),
               ],
             ),
@@ -528,17 +525,35 @@ class _StockDetailScreenState extends State<StockDetailScreen>
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Buy Price: \$${holding.buyPrice.toStringAsFixed(2)}'),
-                    Text(
-                      'Current Price: \$${currentStock.price.toStringAsFixed(2)}',
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'Buy Price: \$${holding.buyPrice.toStringAsFixed(2)}',
+                      ),
+                    ),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'Current Price: \$${currentStock.price.toStringAsFixed(2)}',
+                      ),
                     ),
                   ],
                 ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text('Invested: \$${investedValue.toStringAsFixed(2)}'),
-                    Text('Current: \$${currentValue.toStringAsFixed(2)}'),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'Invested: \$${investedValue.toStringAsFixed(2)}',
+                      ),
+                    ),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'Current: \$${currentValue.toStringAsFixed(2)}',
+                      ),
+                    ),
                   ],
                 ),
               ],

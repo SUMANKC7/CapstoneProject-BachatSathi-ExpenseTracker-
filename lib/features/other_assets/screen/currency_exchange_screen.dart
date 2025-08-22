@@ -514,82 +514,191 @@ class _CurrencyExchangeDetailScreenState
       margin: EdgeInsets.only(bottom: 8),
       child: Padding(
         padding: EdgeInsets.all(16),
-        child: Column(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final bool isSmallScreen = constraints.maxWidth < 350;
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Currency pair and amount row
+                Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        '${holding.fromCurrency}/${holding.toCurrency}',
+                        style: TextStyle(
+                          fontSize: isSmallScreen ? 16 : 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        '${holding.amount.toStringAsFixed(2)} ${holding.fromCurrency}',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: isSmallScreen ? 14 : null,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 8),
+
+                // Rates and values section
+                isSmallScreen
+                    ? _buildCompactRatesSection(
+                        holding,
+                        currentCurrency,
+                        originalValue,
+                        currentValue,
+                      )
+                    : _buildExpandedRatesSection(
+                        holding,
+                        currentCurrency,
+                        originalValue,
+                        currentValue,
+                      ),
+
+                SizedBox(height: 8),
+
+                // P&L section
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: gainLoss >= 0
+                        ? Colors.green.withOpacity(0.2)
+                        : Colors.red.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'P&L: ${gainLoss >= 0 ? '+' : ''}${gainLoss.toStringAsFixed(2)} ${holding.toCurrency}',
+                          style: TextStyle(
+                            color: gainLoss >= 0 ? Colors.green : Colors.red,
+                            fontWeight: FontWeight.bold,
+                            fontSize: isSmallScreen ? 14 : null,
+                          ),
+                        ),
+                      ),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          '${gainLossPercent >= 0 ? '+' : ''}${gainLossPercent.toStringAsFixed(2)}%',
+                          style: TextStyle(
+                            color: gainLoss >= 0 ? Colors.green : Colors.red,
+                            fontWeight: FontWeight.bold,
+                            fontSize: isSmallScreen ? 14 : null,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  // Compact layout for small screens
+  Widget _buildCompactRatesSection(
+    UserCurrencyHolding holding,
+    CurrencyExchangeData currentCurrency,
+    double originalValue,
+    double currentValue,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            'Purchase Rate: ${holding.exchangeRateAtPurchase.toStringAsFixed(4)}',
+          ),
+        ),
+        SizedBox(height: 4),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            'Current Rate: ${currentCurrency.rate.toStringAsFixed(4)}',
+          ),
+        ),
+        SizedBox(height: 8),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            'Original: ${originalValue.toStringAsFixed(2)} ${holding.toCurrency}',
+          ),
+        ),
+        SizedBox(height: 4),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            'Current: ${currentValue.toStringAsFixed(2)} ${holding.toCurrency}',
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Expanded layout for larger screens
+  Widget _buildExpandedRatesSection(
+    UserCurrencyHolding holding,
+    CurrencyExchangeData currentCurrency,
+    double originalValue,
+    double currentValue,
+  ) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '${holding.fromCurrency}/${holding.toCurrency}',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  '${holding.amount.toStringAsFixed(2)} ${holding.fromCurrency}',
-                  style: TextStyle(color: Colors.grey[600]),
-                ),
-              ],
-            ),
-            SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Purchase Rate: ${holding.exchangeRateAtPurchase.toStringAsFixed(4)}',
-                    ),
-                    Text(
-                      'Current Rate: ${currentCurrency.rate.toStringAsFixed(4)}',
-                    ),
-                  ],
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      'Original: ${originalValue.toStringAsFixed(2)} ${holding.toCurrency}',
-                    ),
-                    Text(
-                      'Current: ${currentValue.toStringAsFixed(2)} ${holding.toCurrency}',
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            SizedBox(height: 8),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: gainLoss >= 0
-                    ? Colors.green.withOpacity(0.2)
-                    : Colors.red.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(6),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                'Purchase Rate: ${holding.exchangeRateAtPurchase.toStringAsFixed(4)}',
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'P&L: ${gainLoss >= 0 ? '+' : ''}${gainLoss.toStringAsFixed(2)} ${holding.toCurrency}',
-                    style: TextStyle(
-                      color: gainLoss >= 0 ? Colors.green : Colors.red,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    '${gainLossPercent >= 0 ? '+' : ''}${gainLossPercent.toStringAsFixed(2)}%',
-                    style: TextStyle(
-                      color: gainLoss >= 0 ? Colors.green : Colors.red,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
+            ),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                'Current Rate: ${currentCurrency.rate.toStringAsFixed(4)}',
               ),
             ),
           ],
         ),
-      ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                'Original: ${originalValue.toStringAsFixed(2)} ${holding.toCurrency}',
+              ),
+            ),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                'Current: ${currentValue.toStringAsFixed(2)} ${holding.toCurrency}',
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
