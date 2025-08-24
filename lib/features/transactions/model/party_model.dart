@@ -40,6 +40,8 @@ class AddParty {
     return toReceive ? TransactionStatus.toReceive : TransactionStatus.toGive;
   }
 
+  // --- NO CHANGES NEEDED HERE ---
+  // This factory is for loading data from Firestore and is correct.
   factory AddParty.fromFirestore(Map<String, dynamic> data, String id) {
     return AddParty(
       id: id,
@@ -48,14 +50,37 @@ class AddParty {
       email: data['email'] ?? '',
       address: data['address'] ?? '',
       openingBalance: (data['openingBalance'] ?? 0).toDouble(),
-      date: data["date"] is Timestamp
-          ? (data["date"] as Timestamp).toDate()
-          : DateTime.tryParse(data["date"]?.toString() ?? "") ?? DateTime.now(),
+      date: (data['date'] as Timestamp)
+          .toDate(), // Assumes date is always a Timestamp from Firestore
       isCreditInfoSelected: data['isCreditInfoSelected'] ?? true,
       toReceive: data['toReceive'] ?? true,
-      createdAt: data['createdAt']?.toDate(),
+      createdAt: (data['createdAt'] as Timestamp?)
+          ?.toDate(), // Assumes createdAt is a Timestamp
       avatarColor: _generateColor(data['name'] ?? ''),
       category: data["category"] ?? "",
+    );
+  }
+
+  // --- NEW FACTORY FOR LOADING FROM CACHE ---
+  // This new factory correctly handles the data formats from your toCacheJson method.
+  factory AddParty.fromCacheJson(Map<String, dynamic> json) {
+    return AddParty(
+      id: json['id'] ?? '',
+      name: json['name'] ?? '',
+      phone: json['phone'] ?? '',
+      email: json['email'] ?? '',
+      address: json['address'] ?? '',
+      openingBalance: (json['openingBalance'] ?? 0).toDouble(),
+      // Correctly parses the ISO 8601 string saved in toCacheJson
+      date: DateTime.tryParse(json['date'] ?? '') ?? DateTime.now(),
+      isCreditInfoSelected: json['isCreditInfoSelected'] ?? true,
+      toReceive: json['toReceive'] ?? true,
+      // This is the CRITICAL FIX: It checks if createdAt is an int and handles it.
+      createdAt: json['createdAt'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(json['createdAt'])
+          : null,
+      avatarColor: _generateColor(json['name'] ?? ''),
+      category: json['category'] ?? "",
     );
   }
 
@@ -71,9 +96,28 @@ class AddParty {
       'date': date.toIso8601String(), // Convert DateTime to string
       'isCreditInfoSelected': isCreditInfoSelected,
       'toReceive': toReceive,
+      // This is what's causing the error. It saves as an integer.
       'createdAt': createdAt?.millisecondsSinceEpoch,
       'category': category,
-      // Note: We don't store Color as it's generated from name
+    };
+  }
+
+  // --- NEW METHOD FOR SAVING TO FIRESTORE ---
+  // This ensures you are always sending the correct format to Firestore.
+  Map<String, dynamic> toFirestoreMap() {
+    return {
+      'name': name,
+      'phone': phone,
+      'email': email,
+      'address': address,
+      'openingBalance': openingBalance,
+      'date': Timestamp.fromDate(date), // Convert to Timestamp
+      'isCreditInfoSelected': isCreditInfoSelected,
+      'toReceive': toReceive,
+      'createdAt': createdAt != null
+          ? Timestamp.fromDate(createdAt!)
+          : FieldValue.serverTimestamp(),
+      'category': category,
     };
   }
 

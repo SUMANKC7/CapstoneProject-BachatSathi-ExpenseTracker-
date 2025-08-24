@@ -106,22 +106,22 @@ class EntityRepositoryService {
   }
 
   /// Get cached entities
-  Future<List<AddParty>> getCachedEntities() async {
-    try {
-      final cachedData = _prefs.getString(_localStorageKey);
-      if (cachedData == null) return [];
+  // In EntityRepositoryService.dart
 
-      final jsonList = json.decode(cachedData) as List;
-      return jsonList.map((item) {
-        return AddParty.fromFirestore(
-          Map<String, dynamic>.from(item),
-          item['id'] ?? '',
-        );
-      }).toList();
-    } catch (e) {
-      debugPrint('Cache load error: $e');
+  // In EntityRepositoryService.dart
+
+  Future<List<AddParty>> getCachedEntities() async {
+    final prefs = await SharedPreferences.getInstance();
+    final cachedData = prefs.getString(
+      'cached_parties',
+    ); // Or whatever your key is
+    if (cachedData == null) {
       return [];
     }
+    final List<dynamic> jsonList = jsonDecode(cachedData);
+
+    // THIS IS THE FIX! Use the factory designed for cache data.
+    return jsonList.map((json) => AddParty.fromCacheJson(json)).toList();
   }
 
   /// Delete entity with offline support

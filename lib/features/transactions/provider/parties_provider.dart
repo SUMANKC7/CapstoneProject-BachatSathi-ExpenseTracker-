@@ -182,6 +182,9 @@ class PartiesProvider with ChangeNotifier {
   //   }
   // }
 
+
+
+
   Future<void> _checkConnectivity() async {
     _isOnline = await _repository.isOnline();
     notifyListeners();

@@ -496,79 +496,78 @@ class _StockDetailScreenState extends State<StockDetailScreen>
         ((currentStock.price - holding.buyPrice) / holding.buyPrice) * 100;
 
     return Card(
-      margin: EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 8),
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            /// Top row (symbol + shares)
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   holding.symbol,
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
+                Flexible(
                   child: Text(
                     '${holding.quantity} shares',
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(color: Colors.grey[600]),
                   ),
                 ),
               ],
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
+
+            /// Middle row (prices & invested/current)
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
+                Flexible(
+                  child: Wrap(
+                    spacing: 4,
+                    runSpacing: 2,
+                    children: [
+                      Text(
                         'Buy Price: \$${holding.buyPrice.toStringAsFixed(2)}',
                       ),
-                    ),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
+                      Text(
                         'Current Price: \$${currentStock.price.toStringAsFixed(2)}',
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        'Invested: \$${investedValue.toStringAsFixed(2)}',
-                      ),
-                    ),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        'Current: \$${currentValue.toStringAsFixed(2)}',
-                      ),
-                    ),
-                  ],
+                Flexible(
+                  child: Wrap(
+                    alignment: WrapAlignment.end,
+                    spacing: 4,
+                    runSpacing: 2,
+                    children: [
+                      Text('Invested: \$${investedValue.toStringAsFixed(2)}'),
+                      Text('Current: \$${currentValue.toStringAsFixed(2)}'),
+                    ],
+                  ),
                 ),
               ],
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
+
+            /// Bottom row (P&L)
             Container(
-              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: gainLoss >= 0
                     ? Colors.green.withOpacity(0.2)
                     : Colors.red.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Wrap(
+                alignment: WrapAlignment.spaceBetween,
                 children: [
                   Text(
                     'P&L: ${gainLoss >= 0 ? '+' : ''}\$${gainLoss.toStringAsFixed(2)}',

@@ -6,9 +6,9 @@ class AllTransactionModel {
   final String title;
   final double amount;
   final String category;
-  final DateTime date;
+  final DateTime date; // Use DateTime as the standard type inside your app
   final String remarks;
-  final bool expense; // true = expense, false = income
+  final bool expense;
   final DateTime? createdAt;
 
   AllTransactionModel({
@@ -22,33 +22,68 @@ class AllTransactionModel {
     this.createdAt,
   });
 
-  Map<String, dynamic> toMap() {
+  // --- CHANGE 1: RENAME THIS METHOD ---
+  // This is used ONLY for saving data to Firestore.
+  Map<String, dynamic> toFirestoreMap() {
     return {
       "title": title,
       "amount": amount,
       "category": category,
-      "date": Timestamp.fromDate(date),
+      "date": Timestamp.fromDate(date), // Correct for Firestore
       "remarks": remarks,
       "expense": expense,
       "createdAt": createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
     };
   }
 
+  // --- CHANGE 2: CREATE A NEW toMap FOR CACHING ---
+  // This is used for saving data to local JSON/cache.
+  // It converts DateTime to a simple integer.
+  Map<String, dynamic> toMap() {
+    return {
+      "title": title,
+      "amount": amount,
+      "category": category,
+      "date": date.millisecondsSinceEpoch, // Save as an integer
+      "remarks": remarks,
+      "expense": expense,
+      "createdAt": createdAt?.millisecondsSinceEpoch, // Save as an integer
+    };
+  }
+
+  // --- CHANGE 3: MAKE fromMap MORE ROBUST ---
+  // This factory will now correctly handle data coming from either
+  // Firestore (as a Timestamp) or your local cache (as an int).
   factory AllTransactionModel.fromMap(Map<String, dynamic> map, String id) {
     return AllTransactionModel(
       id: id,
       title: map["title"] ?? "",
       amount: (map["amount"] as num?)?.toDouble() ?? 0.0,
       category: map["category"] ?? "",
-      date: map["date"] is Timestamp
-          ? (map["date"] as Timestamp).toDate()
-          : DateTime.tryParse(map["date"]?.toString() ?? "") ?? DateTime.now(),
+      date: _parseDate(map["date"]) ?? DateTime.now(), // Ensure non-null DateTime
       remarks: map["remarks"] ?? "",
       expense: map["expense"] ?? false,
-      createdAt: map["createdAt"] is Timestamp 
-          ? (map["createdAt"] as Timestamp).toDate()
-          : null,
+      createdAt: _parseDate(map["createdAt"]), // Also use it for createdAt
     );
+  }
+
+  // --- CHANGE 4: ADD THE HELPER FUNCTION ---
+  // This private helper function makes the fromMap factory clean and readable.
+  static DateTime? _parseDate(dynamic dateValue) {
+    if (dateValue == null) return null;
+    if (dateValue is Timestamp) {
+      return dateValue.toDate(); // Handles data from Firestore
+    }
+    if (dateValue is int) {
+      // Handles data from your cache (millisecondsSinceEpoch)
+      return DateTime.fromMillisecondsSinceEpoch(dateValue);
+    }
+    // Fallback for string dates if you ever use them
+    if (dateValue is String) {
+      return DateTime.tryParse(dateValue);
+    }
+    // Return null if the type is unknown
+    return null;
   }
 
   AllTransactionModel copyWith({

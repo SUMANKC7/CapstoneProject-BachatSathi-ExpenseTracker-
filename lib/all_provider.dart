@@ -31,8 +31,9 @@ Future<MultiProvider> allProviders() async {
       ChangeNotifierProvider(create: (_) => TransactionDataProvider()),
       ChangeNotifierProvider(create: (_) => AuthProvider()),
       ChangeNotifierProvider(create: (_) => SwitchExpenseProvider()),
+      // ChangeNotifierProvider(create: (_) => FinancialDataProvider()),
 
-      // 3️⃣ Providers that depend on repositories
+      // 3️ Providers that depend on repositories
       ChangeNotifierProxyProvider<EntityRepositoryService, PartiesProvider>(
         create: (context) =>
             PartiesProvider(context.read<EntityRepositoryService>()),

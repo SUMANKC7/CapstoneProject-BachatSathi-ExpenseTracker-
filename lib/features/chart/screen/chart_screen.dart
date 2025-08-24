@@ -70,7 +70,7 @@ class ChartScreen extends StatelessWidget {
               SummaryStats(provider: provider),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.only(left: 50.0),
                   child: ChartArea(provider: provider),
                 ),
               ),
