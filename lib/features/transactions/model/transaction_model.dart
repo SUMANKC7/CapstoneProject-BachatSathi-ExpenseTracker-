@@ -6,9 +6,9 @@ class AllTransactionModel {
   final String title;
   final double amount;
   final String category;
-  final DateTime date; // Use DateTime as the standard type inside your app
+  final DateTime date;
   final String remarks;
-  final bool expense;
+  final bool expense; // true = expense, false = income
   final DateTime? createdAt;
 
   AllTransactionModel({
@@ -22,52 +22,49 @@ class AllTransactionModel {
     this.createdAt,
   });
 
-  // --- CHANGE 1: RENAME THIS METHOD ---
-  // This is used ONLY for saving data to Firestore.
+  // --- THIS IS THE CRITICAL FIX ---
+  // The 'toMap()' method now includes the 'id' field.
+  // This is used to prepare data for the background PDF generation.
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id, // THIS LINE WAS MISSING
+      'title': title,
+      'amount': amount,
+      'category': category,
+      'remarks': remarks,
+      'expense': expense,
+      'date': date.millisecondsSinceEpoch,
+      'createdAt': createdAt?.millisecondsSinceEpoch,
+    };
+  }
+  
+  // This method is for saving to FIRESTORE. It should remain the same.
   Map<String, dynamic> toFirestoreMap() {
     return {
       "title": title,
       "amount": amount,
       "category": category,
-      "date": Timestamp.fromDate(date), // Correct for Firestore
+      "date": Timestamp.fromDate(date),
       "remarks": remarks,
       "expense": expense,
       "createdAt": createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
     };
   }
 
-  // --- CHANGE 2: CREATE A NEW toMap FOR CACHING ---
-  // This is used for saving data to local JSON/cache.
-  // It converts DateTime to a simple integer.
-  Map<String, dynamic> toMap() {
-    return {
-      "title": title,
-      "amount": amount,
-      "category": category,
-      "date": date.millisecondsSinceEpoch, // Save as an integer
-      "remarks": remarks,
-      "expense": expense,
-      "createdAt": createdAt?.millisecondsSinceEpoch, // Save as an integer
-    };
-  }
-
-  // --- CHANGE 3: MAKE fromMap MORE ROBUST ---
-  // This factory will now correctly handle data coming from either
-  // Firestore (as a Timestamp) or your local cache (as an int).
+  // This factory is now robust for loading from Firestore or the cache.
   factory AllTransactionModel.fromMap(Map<String, dynamic> map, String id) {
     return AllTransactionModel(
       id: id,
       title: map["title"] ?? "",
       amount: (map["amount"] as num?)?.toDouble() ?? 0.0,
       category: map["category"] ?? "",
-      date: _parseDate(map["date"]) ?? DateTime.now(), // Ensure non-null DateTime
+      date: _parseDate(map["date"]) ?? DateTime.now(),
       remarks: map["remarks"] ?? "",
       expense: map["expense"] ?? false,
-      createdAt: _parseDate(map["createdAt"]), // Also use it for createdAt
+      createdAt: _parseDate(map["createdAt"]),
     );
   }
 
-  // --- CHANGE 4: ADD THE HELPER FUNCTION ---
   // This private helper function makes the fromMap factory clean and readable.
   static DateTime? _parseDate(dynamic dateValue) {
     if (dateValue == null) return null;
@@ -78,11 +75,9 @@ class AllTransactionModel {
       // Handles data from your cache (millisecondsSinceEpoch)
       return DateTime.fromMillisecondsSinceEpoch(dateValue);
     }
-    // Fallback for string dates if you ever use them
     if (dateValue is String) {
       return DateTime.tryParse(dateValue);
     }
-    // Return null if the type is unknown
     return null;
   }
 

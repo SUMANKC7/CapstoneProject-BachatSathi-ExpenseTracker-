@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:expensetrack/features/transactions/model/party_model.dart';
 import 'package:expensetrack/features/transactions/model/transaction_model.dart';
@@ -7,6 +8,43 @@ import 'package:pdf/pdf.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pw;
+
+// --- THIS IS THE NEW TOP-LEVEL FUNCTION THAT RUNS IN THE BACKGROUND ---
+Future<String> generatePdfInBackground(Map<String, dynamic> data) async {
+  // 1. Unpack all data, including the raw font data
+  final personalTransactionsMaps =
+      data['personalTransactionsMaps'] as List<dynamic>;
+  final partyTransactionsMaps = data['partyTransactionsMaps'] as List<dynamic>;
+  final startDate = data['startDate'] as DateTime;
+  final endDate = data['endDate'] as DateTime;
+  final fontData = data['fontData'] as ByteData;
+  final boldFontData = data['boldFontData'] as ByteData;
+
+  // 2. Re-create the model objects
+  final personalTransactions = personalTransactionsMaps
+      .map(
+        (map) => AllTransactionModel.fromMap(
+          Map<String, dynamic>.from(map),
+          map['id'],
+        ),
+      )
+      .toList();
+  final partyTransactions = partyTransactionsMaps
+      .map((map) => AddParty.fromCacheJson(Map<String, dynamic>.from(map)))
+      .toList();
+
+  // 3. Call the PDF generation logic, now passing the font data
+  final file = await PdfGeneratorService.generatePdf(
+    personalTransactions: personalTransactions,
+    partyTransactions: partyTransactions,
+    startDate: startDate,
+    endDate: endDate,
+    fontData: fontData,
+    boldFontData: boldFontData,
+  );
+
+  return file.path;
+}
 
 class PdfGeneratorService {
   static final PdfColor incomeColor = PdfColor.fromInt(
@@ -22,23 +60,26 @@ class PdfGeneratorService {
     const Color(0xFFE91E63).value,
   );
 
+  // --- CRITICAL FIX: The method now accepts the raw font data ---
   static Future<File> generatePdf({
     required List<AllTransactionModel> personalTransactions,
     required List<AddParty> partyTransactions,
     required DateTime startDate,
     required DateTime endDate,
+    required ByteData fontData,
+    required ByteData boldFontData,
   }) async {
     final pdf = pw.Document();
     final currencyFormat = NumberFormat.currency(symbol: '\$');
 
-    final fontData = await rootBundle.load("assets/fonts/OpenSans-Regular.ttf");
-    final boldFontData = await rootBundle.load(
-      "assets/fonts/OpenSans-Bold.ttf",
-    );
+    // --- CRITICAL FIX: Create fonts from the passed-in ByteData, NOT rootBundle ---
     final ttf = pw.Font.ttf(fontData);
     final boldTtf = pw.Font.ttf(boldFontData);
-
     final pdfTheme = pw.ThemeData.withFont(base: ttf, bold: boldTtf);
+
+    final sanePersonalTransactions = personalTransactions
+        .where((tx) => tx.amount.isFinite)
+        .toList();
 
     pdf.addPage(
       pw.MultiPage(
@@ -46,18 +87,23 @@ class PdfGeneratorService {
         header: (context) => _buildHeader('Personal Transactions Report'),
         build: (context) => [
           _buildSectionHeader('Summary'),
-          _buildPersonalSummary(personalTransactions, currencyFormat),
-          if (personalTransactions.isNotEmpty) ...[
-            _buildSectionHeader('Visualizations'),
-            _buildCategoryBarChart(personalTransactions, currencyFormat),
-            pw.SizedBox(height: 30),
-            _buildMonthlyTrendsLineChart(personalTransactions, currencyFormat),
-          ],
+          _buildPersonalSummary(sanePersonalTransactions, currencyFormat),
+          _buildSectionHeader('Visualizations'),
+          _buildCategoryBarChart(sanePersonalTransactions, currencyFormat),
+          pw.SizedBox(height: 30),
+          _buildMonthlyTrendsLineChart(
+            sanePersonalTransactions,
+            currencyFormat,
+          ),
           _buildSectionHeader('All Transactions'),
-          _buildPersonalTransactionsTable(personalTransactions, currencyFormat),
+          _buildPersonalTransactionsTable(
+            sanePersonalTransactions,
+            currencyFormat,
+          ),
         ],
       ),
     );
+    // Other pages... (The rest of the method is unchanged)
     pdf.addPage(
       pw.MultiPage(
         theme: pdfTheme,
@@ -76,7 +122,7 @@ class PdfGeneratorService {
         header: (context) => _buildHeader('Journal Entries'),
         build: (context) => [
           _buildJournalEntriesTable(
-            personalTransactions,
+            sanePersonalTransactions,
             partyTransactions,
             currencyFormat,
           ),
@@ -92,7 +138,9 @@ class PdfGeneratorService {
     return file;
   }
 
-  // --- Helper widgets and tables are unchanged ---
+  // --- The rest of the file is UNCHANGED ---
+  // (All the _build... methods and the _calculateSafeAxisTicks helper)
+
   static pw.Widget _buildHeader(String title) {
     /* ... */
     return pw.Container(
@@ -126,10 +174,10 @@ class PdfGeneratorService {
   ) {
     /* ... */
     double totalIncome = txs
-        .where((t) => !t.expense && t.amount.isFinite)
+        .where((t) => !t.expense)
         .fold(0.0, (sum, item) => sum + item.amount);
     double totalExpense = txs
-        .where((t) => t.expense && t.amount.isFinite)
+        .where((t) => t.expense)
         .fold(0.0, (sum, item) => sum + item.amount);
     double netFlow = totalIncome - totalExpense;
     return pw.Column(
@@ -304,20 +352,39 @@ class PdfGeneratorService {
     );
   }
 
-  // --- Chart Generation Methods (REBUILT WITH DATA SANITIZATION) ---
+  static List<double> _calculateSafeAxisTicks(List<double> values) {
+    /* ... */
+    if (values.isEmpty) {
+      return List<double>.generate(6, (i) => (i * 2.0));
+    }
+    double minY = values.first;
+    double maxY = values.first;
+    for (final value in values) {
+      if (value < minY) minY = value;
+      if (value > maxY) maxY = value;
+    }
+    if (minY == maxY) {
+      maxY = minY + 10;
+      minY = minY - 10;
+      if (minY < 0 && values.every((v) => v >= 0)) {
+        minY = 0;
+      }
+    }
+    final range = maxY - minY;
+    final step = (range == 0 || range.isNaN || range.isInfinite)
+        ? 1.0
+        : range / 5.0;
+    return List<double>.generate(6, (i) => minY + (step * i));
+  }
 
   static pw.Widget _buildCategoryBarChart(
     List<AllTransactionModel> transactions,
     NumberFormat currencyFormat,
   ) {
+    /* ... */
     final Map<String, double> categoryTotals = {};
-
-    // --- FIX #1: Sanitize data BEFORE processing ---
-    final validTransactions = transactions.where(
-      (tx) => tx.expense && tx.amount.isFinite,
-    );
-
-    for (var tx in validTransactions) {
+    final validExpenses = transactions.where((tx) => tx.expense);
+    for (var tx in validExpenses) {
       final category = tx.category.isEmpty ? 'Uncategorized' : tx.category;
       categoryTotals.update(
         category,
@@ -325,27 +392,21 @@ class PdfGeneratorService {
         ifAbsent: () => tx.amount,
       );
     }
-
-    // --- FIX #2: Check if there is ANY valid data left ---
     if (categoryTotals.isEmpty) {
-      return pw.Center(
-        child: pw.Text("No valid expense data to display in chart."),
+      return pw.Container(
+        height: 250,
+        child: pw.Center(child: pw.Text("No expense data to display.")),
       );
     }
-
     final categoryKeys = categoryTotals.keys.toList();
-    final data = List<pw.PointChartValue>.generate(categoryKeys.length, (
-      index,
-    ) {
-      final value = categoryTotals[categoryKeys[index]]!;
-      return pw.PointChartValue(index.toDouble(), value);
-    });
-
-    double maxAmount = data.map((d) => d.y).reduce((a, b) => a > b ? a : b);
-    if (maxAmount == 0) maxAmount = 10;
-
-    final yAxisTicks = List<double>.generate(6, (i) => (maxAmount / 5) * i);
-
+    final data = List<pw.PointChartValue>.generate(
+      categoryKeys.length,
+      (index) => pw.PointChartValue(
+        index.toDouble(),
+        categoryTotals[categoryKeys[index]]!,
+      ),
+    );
+    final yAxisTicks = _calculateSafeAxisTicks(data.map((d) => d.y).toList());
     return pw.Container(
       height: 250,
       child: pw.Chart(
@@ -365,30 +426,25 @@ class PdfGeneratorService {
     List<AllTransactionModel> transactions,
     NumberFormat currencyFormat,
   ) {
+    /* ... */
     final Map<String, Map<String, double>> monthlyMap = {};
-
-    // --- FIX #1: Sanitize data BEFORE processing ---
-    final validTransactions = transactions.where((tx) => tx.amount.isFinite);
-
-    for (final transaction in validTransactions) {
+    for (final transaction in transactions) {
       final monthKey = DateFormat('yyyy-MM').format(transaction.date);
       monthlyMap.putIfAbsent(monthKey, () => {'income': 0.0, 'expense': 0.0});
       if (transaction.expense) {
         monthlyMap[monthKey]!['expense'] =
-            (monthlyMap[monthKey]!['expense'] ?? 0.0) + transaction.amount;
+            monthlyMap[monthKey]!['expense']! + transaction.amount;
       } else {
         monthlyMap[monthKey]!['income'] =
-            (monthlyMap[monthKey]!['income'] ?? 0.0) + transaction.amount;
+            monthlyMap[monthKey]!['income']! + transaction.amount;
       }
     }
-
-    // --- FIX #2: Check if there is ANY valid data left ---
     if (monthlyMap.isEmpty) {
-      return pw.Center(
-        child: pw.Text("No valid transaction data for trend chart."),
+      return pw.Container(
+        height: 250,
+        child: pw.Center(child: pw.Text("No data for trend chart.")),
       );
     }
-
     final sortedKeys = monthlyMap.keys.toList()..sort();
     final incomeData = List<pw.PointChartValue>.generate(
       sortedKeys.length,
@@ -412,27 +468,12 @@ class PdfGeneratorService {
           monthlyMap[sortedKeys[i]]!['expense']!;
       return pw.PointChartValue(i.toDouble(), net);
     });
-
     final allValues = [
       ...incomeData.map((d) => d.y),
       ...expenseData.map((d) => d.y),
       ...netFlowData.map((d) => d.y),
     ];
-
-    double minY = allValues.reduce((a, b) => a < b ? a : b);
-    double maxY = allValues.reduce((a, b) => a > b ? a : b);
-
-    if (minY == maxY) {
-      minY -= 5;
-      maxY += 5;
-    }
-    if (minY == maxY) {
-      // Handles case where both were 0
-      maxY = minY + 10;
-    }
-    final range = maxY - minY;
-    final yAxisTicks = List<double>.generate(6, (i) => minY + (range / 5) * i);
-
+    final yAxisTicks = _calculateSafeAxisTicks(allValues);
     return pw.Container(
       height: 250,
       child: pw.Chart(

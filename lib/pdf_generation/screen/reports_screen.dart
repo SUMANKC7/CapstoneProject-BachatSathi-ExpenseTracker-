@@ -2,9 +2,11 @@ import 'package:expensetrack/features/transactions/provider/add_entity_provider.
 import 'package:expensetrack/features/transactions/provider/parties_provider.dart';
 import 'package:expensetrack/pdf_generation/services/pdf_generator_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Import this for rootBundle
 import 'package:open_file/open_file.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter/foundation.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -34,63 +36,72 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   Future<void> _generateReport() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
     });
 
     try {
-      final personalTransactionProvider = Provider.of<AddTransactionProvider>(
-        context,
-        listen: false,
-      );
-      final partyProvider = Provider.of<PartiesProvider>(
-        context,
-        listen: false,
-      );
+      // Step 1: Fetch data (this is fast)
+      final personalTransactionProvider = Provider.of<AddTransactionProvider>(context, listen: false);
+      final partyProvider = Provider.of<PartiesProvider>(context, listen: false);
 
-      // Fetching data - you might want to enhance your repositories to fetch by date
-      final personalTransactions = await personalTransactionProvider.repository
-          .getTransactionsByDateRange(_startDate, _endDate);
+      final personalTransactions = await personalTransactionProvider.repository.getTransactionsByDateRange(_startDate, _endDate);
       final partyTransactions = partyProvider.parties.where((party) {
-        // Assuming 'date' is a string; you need to parse it
         try {
-          final partyDate = party.date;
-          return partyDate.isAfter(
-                _startDate.subtract(const Duration(days: 1)),
-              ) &&
-              partyDate.isBefore(_endDate.add(const Duration(days: 1)));
+          return party.date.isAfter(_startDate.subtract(const Duration(days: 1))) &&
+                 party.date.isBefore(_endDate.add(const Duration(days: 1)));
         } catch (e) {
           return false;
         }
       }).toList();
 
-      // Generate and save the PDF
-      final pdfFile = await PdfGeneratorService.generatePdf(
-        personalTransactions: personalTransactions,
-        partyTransactions: partyTransactions,
-        startDate: _startDate,
-        endDate: _endDate,
-      );
+      // --- CRITICAL FIX: Load font data on the main thread ---
+      final fontData = await rootBundle.load("assets/fonts/OpenSans-Regular.ttf");
+      final boldFontData = await rootBundle.load("assets/fonts/OpenSans-Bold.ttf");
 
-      // Optionally, open the file
-      await OpenFile.open(pdfFile.path);
+      // Step 2: Prepare data for the background task
+      final personalTransactionsMaps = personalTransactions.map((tx) => tx.toMap()).toList();
+      final partyTransactionsMaps = partyTransactions.map((p) => p.toCacheJson()).toList();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Report saved to ${pdfFile.path}')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to generate report: $e')));
-    } finally {
-      setState(() {
-        _isLoading = false;
+      // Step 3: Run the heavy PDF creation in the background
+      final String filePath = await compute(generatePdfInBackground, {
+        'personalTransactionsMaps': personalTransactionsMaps,
+        'partyTransactionsMaps': partyTransactionsMaps,
+        'startDate': _startDate,
+        'endDate': _endDate,
+        'fontData': fontData, // Pass the raw font data
+        'boldFontData': boldFontData, // Pass the raw bold font data
       });
+
+      // Step 4: Use the result
+      await OpenFile.open(filePath);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Report saved to $filePath')),
+        );
+      }
+    } catch (e, stackTrace) {
+      debugPrint('--- FAILED TO GENERATE REPORT ---');
+      debugPrint('ERROR: $e');
+      debugPrint('STACK TRACE: $stackTrace');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to generate report: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // The build method is unchanged
     return Scaffold(
       appBar: AppBar(title: const Text('Generate Reports')),
       body: Padding(
@@ -98,10 +109,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Select Date Range',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
+            const Text('Select Date Range', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -124,10 +132,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       label: const Text('Generate PDF Report'),
                       onPressed: _generateReport,
                       style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 12,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                         textStyle: const TextStyle(fontSize: 16),
                       ),
                     ),
