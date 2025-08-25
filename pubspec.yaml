@@ -84,6 +84,7 @@ flutter:
     - assets/images/
     - assets/fonts/OpenSans-Regular.ttf
     - assets/fonts/OpenSans-Bold.ttf
+    
 
   #   - images/a_dot_ham.jpeg
 

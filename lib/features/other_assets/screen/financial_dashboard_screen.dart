@@ -28,7 +28,7 @@ class _FinancialDashboardScreenState extends State<FinancialDashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Financial Dashboard'),
+        title: Text('Other Assets'),
         actions: [
           IconButton(
             icon: Icon(Icons.refresh),
