@@ -36,7 +36,7 @@ A comprehensive expense tracker application that helps you manage your finances 
 <div align="center">
   <img src="assets/images/financial_dashboard.jpeg" width="30%" alt="Financial Dashboard">
   <img src="assets/images/chart.jpeg" width="30%" alt="Charts">
-  <img src="assets/images/chart.jpeg" width="30%" alt="Monthly Trends">
+  <img src="assets/images/montly_trends.jpeg" width="30%" alt="Monthly Trends">
 </div>
 
 ---
