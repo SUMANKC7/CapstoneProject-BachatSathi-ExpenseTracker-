@@ -2,7 +2,16 @@ import 'package:expensetrack/core/appcolors.dart';
 import 'package:flutter/material.dart';
 
 class SpentTodayCard extends StatelessWidget {
-  const SpentTodayCard({super.key});
+  final double totalBalance;
+  final double income;
+  final double expense;
+
+  const SpentTodayCard({
+    super.key,
+    required this.totalBalance,
+    required this.income,
+    required this.expense,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -20,10 +29,7 @@ class SpentTodayCard extends StatelessWidget {
                   Color(0xFFC8E6C9), // Light Green
                   Color(0xFFB3E5FC), // Pale Sky Blue
                 ],
-                // begin: Alignment.topLeft,
-                // end: Alignment.bottomRight
               ),
-              // color: AppColors.greenAccent,
               borderRadius: BorderRadius.circular(20),
             ),
           ),
@@ -44,7 +50,7 @@ class SpentTodayCard extends StatelessWidget {
               ),
               SizedBox(height: 7),
               Text(
-                "Rs.120",
+                "Rs.${totalBalance.toStringAsFixed(0)}",
                 style: TextStyle(
                   letterSpacing: 2.0,
                   fontSize: 16,
@@ -66,18 +72,17 @@ class SpentTodayCard extends StatelessWidget {
           child: IncomeExpense(
             color: Colors.green,
             title: "Income",
-            amount: "Rs.120",
+            amount: "Rs.${income.toStringAsFixed(0)}",
             myicon: Icons.arrow_downward,
           ),
         ),
-
         Positioned(
           bottom: 18,
           right: 22,
           child: IncomeExpense(
             color: Color(0xFFFF8A80),
             title: "Expense",
-            amount: 'Rs.120',
+            amount: "Rs.${expense.toStringAsFixed(0)}",
             myicon: Icons.arrow_upward,
           ),
         ),

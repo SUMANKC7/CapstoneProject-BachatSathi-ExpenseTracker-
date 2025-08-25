@@ -1,12 +1,13 @@
+
+import 'package:flutter/services.dart';
 import 'package:expensetrack/features/transactions/provider/add_entity_provider.dart';
 import 'package:expensetrack/features/transactions/provider/parties_provider.dart';
 import 'package:expensetrack/pdf_generation/services/pdf_generator_service.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Import this for rootBundle
 import 'package:open_file/open_file.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -35,6 +36,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     }
   }
 
+  // This method now contains the complete and correct logic.
   Future<void> _generateReport() async {
     if (!mounted) return;
     setState(() {
@@ -42,7 +44,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     });
 
     try {
-      // Step 1: Fetch data (this is fast)
+      // Step 1: Fetch data
       final personalTransactionProvider = Provider.of<AddTransactionProvider>(context, listen: false);
       final partyProvider = Provider.of<PartiesProvider>(context, listen: false);
 
@@ -55,30 +57,32 @@ class _ReportsScreenState extends State<ReportsScreen> {
           return false;
         }
       }).toList();
-
-      // --- CRITICAL FIX: Load font data on the main thread ---
+      
+      // --- THIS IS THE MISSING LOGIC ---
+      // Load fonts and get the directory path before calling the PDF service.
       final fontData = await rootBundle.load("assets/fonts/OpenSans-Regular.ttf");
       final boldFontData = await rootBundle.load("assets/fonts/OpenSans-Bold.ttf");
+      final tempDir = await getTemporaryDirectory();
+      final tempPath = tempDir.path;
+      // --- END OF MISSING LOGIC ---
 
-      // Step 2: Prepare data for the background task
-      final personalTransactionsMaps = personalTransactions.map((tx) => tx.toMap()).toList();
-      final partyTransactionsMaps = partyTransactions.map((p) => p.toCacheJson()).toList();
+      // Step 2: Generate the PDF directly, now providing all required arguments.
+      final pdfFile = await PdfGeneratorService.generatePdf(
+        personalTransactions: personalTransactions,
+        partyTransactions: partyTransactions,
+        startDate: _startDate,
+        endDate: _endDate,
+        fontData: fontData,         // This argument is now provided
+        boldFontData: boldFontData, // This argument is now provided
+        tempPath: tempPath,         // This argument is now provided
+      );
 
-      // Step 3: Run the heavy PDF creation in the background
-      final String filePath = await compute(generatePdfInBackground, {
-        'personalTransactionsMaps': personalTransactionsMaps,
-        'partyTransactionsMaps': partyTransactionsMaps,
-        'startDate': _startDate,
-        'endDate': _endDate,
-        'fontData': fontData, // Pass the raw font data
-        'boldFontData': boldFontData, // Pass the raw bold font data
-      });
+      // Step 3: Open the generated file.
+      await OpenFile.open(pdfFile.path);
 
-      // Step 4: Use the result
-      await OpenFile.open(filePath);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Report saved to $filePath')),
+          SnackBar(content: Text('Report saved to ${pdfFile.path}')),
         );
       }
     } catch (e, stackTrace) {

@@ -1,17 +1,18 @@
 import 'dart:io';
-import 'dart:ui';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:expensetrack/features/transactions/model/party_model.dart';
 import 'package:expensetrack/features/transactions/model/transaction_model.dart';
+import 'package:flutter/widgets.dart';
 import 'package:pdf/pdf.dart';
-import 'package:path_provider/path_provider.dart';
+
 import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pw;
 
-// --- THIS IS THE NEW TOP-LEVEL FUNCTION THAT RUNS IN THE BACKGROUND ---
+// This top-level function runs the PDF generation in the background. It is correct.
 Future<String> generatePdfInBackground(Map<String, dynamic> data) async {
-  // 1. Unpack all data, including the raw font data
+  // This initialization is necessary for platform plugins in background isolates.
+  WidgetsFlutterBinding.ensureInitialized();
+
   final personalTransactionsMaps =
       data['personalTransactionsMaps'] as List<dynamic>;
   final partyTransactionsMaps = data['partyTransactionsMaps'] as List<dynamic>;
@@ -19,8 +20,8 @@ Future<String> generatePdfInBackground(Map<String, dynamic> data) async {
   final endDate = data['endDate'] as DateTime;
   final fontData = data['fontData'] as ByteData;
   final boldFontData = data['boldFontData'] as ByteData;
+  final tempPath = data['tempPath'] as String;
 
-  // 2. Re-create the model objects
   final personalTransactions = personalTransactionsMaps
       .map(
         (map) => AllTransactionModel.fromMap(
@@ -33,7 +34,6 @@ Future<String> generatePdfInBackground(Map<String, dynamic> data) async {
       .map((map) => AddParty.fromCacheJson(Map<String, dynamic>.from(map)))
       .toList();
 
-  // 3. Call the PDF generation logic, now passing the font data
   final file = await PdfGeneratorService.generatePdf(
     personalTransactions: personalTransactions,
     partyTransactions: partyTransactions,
@@ -41,6 +41,7 @@ Future<String> generatePdfInBackground(Map<String, dynamic> data) async {
     endDate: endDate,
     fontData: fontData,
     boldFontData: boldFontData,
+    tempPath: tempPath,
   );
 
   return file.path;
@@ -60,7 +61,6 @@ class PdfGeneratorService {
     const Color(0xFFE91E63).value,
   );
 
-  // --- CRITICAL FIX: The method now accepts the raw font data ---
   static Future<File> generatePdf({
     required List<AllTransactionModel> personalTransactions,
     required List<AddParty> partyTransactions,
@@ -68,11 +68,11 @@ class PdfGeneratorService {
     required DateTime endDate,
     required ByteData fontData,
     required ByteData boldFontData,
+    required String tempPath,
   }) async {
     final pdf = pw.Document();
     final currencyFormat = NumberFormat.currency(symbol: '\$');
 
-    // --- CRITICAL FIX: Create fonts from the passed-in ByteData, NOT rootBundle ---
     final ttf = pw.Font.ttf(fontData);
     final boldTtf = pw.Font.ttf(boldFontData);
     final pdfTheme = pw.ThemeData.withFont(base: ttf, bold: boldTtf);
@@ -103,7 +103,6 @@ class PdfGeneratorService {
         ],
       ),
     );
-    // Other pages... (The rest of the method is unchanged)
     pdf.addPage(
       pw.MultiPage(
         theme: pdfTheme,
@@ -130,19 +129,15 @@ class PdfGeneratorService {
       ),
     );
 
-    final output = await getTemporaryDirectory();
     final file = File(
-      "${output.path}/expense_report_${DateTime.now().millisecondsSinceEpoch}.pdf",
+      "$tempPath/expense_report_${DateTime.now().millisecondsSinceEpoch}.pdf",
     );
     await file.writeAsBytes(await pdf.save());
     return file;
   }
 
-  // --- The rest of the file is UNCHANGED ---
-  // (All the _build... methods and the _calculateSafeAxisTicks helper)
-
+  // --- Helper methods and tables are unchanged, EXCEPT for the chart functions ---
   static pw.Widget _buildHeader(String title) {
-    /* ... */
     return pw.Container(
       alignment: pw.Alignment.center,
       margin: const pw.EdgeInsets.only(bottom: 20.0),
@@ -154,7 +149,6 @@ class PdfGeneratorService {
   }
 
   static pw.Widget _buildSectionHeader(String title) {
-    /* ... */
     return pw.Container(
       margin: const pw.EdgeInsets.symmetric(vertical: 10),
       child: pw.Text(
@@ -172,7 +166,6 @@ class PdfGeneratorService {
     List<AllTransactionModel> txs,
     NumberFormat fmt,
   ) {
-    /* ... */
     double totalIncome = txs
         .where((t) => !t.expense)
         .fold(0.0, (sum, item) => sum + item.amount);
@@ -199,7 +192,6 @@ class PdfGeneratorService {
     List<AllTransactionModel> txs,
     NumberFormat fmt,
   ) {
-    /* ... */
     final headers = ['Date', 'Title', 'Category', 'Income', 'Expense'];
     final data = txs.map((tx) {
       return [
@@ -226,7 +218,6 @@ class PdfGeneratorService {
     List<AddParty> parties,
     NumberFormat fmt,
   ) {
-    /* ... */
     double totalToReceive = parties
         .where((p) => p.toReceive)
         .fold(0.0, (sum, item) => sum + item.openingBalance);
@@ -254,7 +245,6 @@ class PdfGeneratorService {
     List<AddParty> parties,
     NumberFormat fmt,
   ) {
-    /* ... */
     final headers = ['Date', 'Party Name', 'Phone', 'Amount', 'Status'];
     final data = parties.map((party) {
       return [
@@ -279,7 +269,6 @@ class PdfGeneratorService {
     List<AddParty> parties,
     NumberFormat fmt,
   ) {
-    /* ... */
     final headers = ['Date', 'Description', 'Debit', 'Credit'];
     List<List<String>> data = [];
     for (var tx in personal) {
@@ -336,7 +325,6 @@ class PdfGeneratorService {
   }
 
   static pw.Widget _summaryRow(String title, String value, PdfColor color) {
-    /* ... */
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(vertical: 2),
       child: pw.Row(
@@ -353,9 +341,8 @@ class PdfGeneratorService {
   }
 
   static List<double> _calculateSafeAxisTicks(List<double> values) {
-    /* ... */
     if (values.isEmpty) {
-      return List<double>.generate(6, (i) => (i * 2.0));
+      return [0.0, 2.0, 4.0, 6.0, 8.0, 10.0];
     }
     double minY = values.first;
     double maxY = values.first;
@@ -364,16 +351,15 @@ class PdfGeneratorService {
       if (value > maxY) maxY = value;
     }
     if (minY == maxY) {
-      maxY = minY + 10;
-      minY = minY - 10;
-      if (minY < 0 && values.every((v) => v >= 0)) {
+      minY = minY - 5.0;
+      maxY = maxY + 5.0;
+      if (minY == -5.0 && maxY == 5.0) {
         minY = 0;
+        maxY = 10;
       }
     }
     final range = maxY - minY;
-    final step = (range == 0 || range.isNaN || range.isInfinite)
-        ? 1.0
-        : range / 5.0;
+    final step = (range == 0) ? 1.0 : range / 5.0;
     return List<double>.generate(6, (i) => minY + (step * i));
   }
 
@@ -381,10 +367,8 @@ class PdfGeneratorService {
     List<AllTransactionModel> transactions,
     NumberFormat currencyFormat,
   ) {
-    /* ... */
     final Map<String, double> categoryTotals = {};
-    final validExpenses = transactions.where((tx) => tx.expense);
-    for (var tx in validExpenses) {
+    for (var tx in transactions.where((tx) => tx.expense)) {
       final category = tx.category.isEmpty ? 'Uncategorized' : tx.category;
       categoryTotals.update(
         category,
@@ -407,14 +391,20 @@ class PdfGeneratorService {
       ),
     );
     final yAxisTicks = _calculateSafeAxisTicks(data.map((d) => d.y).toList());
+
+    // --- THIS IS THE FIX ---
+    // Create an explicit list of doubles for the X-axis ticks.
+    // If there's only one bar, create an axis from 0 to 1 to give it a valid range.
+    final xAxisTicks = categoryKeys.length == 1
+        ? [0.0, 1.0]
+        : List<double>.generate(categoryKeys.length, (i) => i.toDouble());
+
     return pw.Container(
       height: 250,
       child: pw.Chart(
         title: pw.Text('Expenses by Category'),
         grid: pw.CartesianGrid(
-          xAxis: pw.FixedAxis(
-            List<int>.generate(categoryKeys.length, (i) => i),
-          ),
+          xAxis: pw.FixedAxis(xAxisTicks), // Use the safe, corrected ticks
           yAxis: pw.FixedAxis(yAxisTicks),
         ),
         datasets: [pw.BarDataSet(color: PdfColors.blue, data: data)],
@@ -426,7 +416,6 @@ class PdfGeneratorService {
     List<AllTransactionModel> transactions,
     NumberFormat currencyFormat,
   ) {
-    /* ... */
     final Map<String, Map<String, double>> monthlyMap = {};
     for (final transaction in transactions) {
       final monthKey = DateFormat('yyyy-MM').format(transaction.date);
@@ -468,19 +457,27 @@ class PdfGeneratorService {
           monthlyMap[sortedKeys[i]]!['expense']!;
       return pw.PointChartValue(i.toDouble(), net);
     });
+
     final allValues = [
       ...incomeData.map((d) => d.y),
       ...expenseData.map((d) => d.y),
       ...netFlowData.map((d) => d.y),
     ];
     final yAxisTicks = _calculateSafeAxisTicks(allValues);
+
+    // --- THIS IS THE FIX ---
+    // The same logic is applied here for the line chart's X-axis.
+    final xAxisTicks = sortedKeys.length == 1
+        ? [0.0, 1.0]
+        : List<double>.generate(sortedKeys.length, (i) => i.toDouble());
+
     return pw.Container(
       height: 250,
       child: pw.Chart(
         title: pw.Text('Monthly Financial Trends'),
         right: pw.ChartLegend(),
         grid: pw.CartesianGrid(
-          xAxis: pw.FixedAxis(List<int>.generate(sortedKeys.length, (i) => i)),
+          xAxis: pw.FixedAxis(xAxisTicks), // Use the safe, corrected ticks
           yAxis: pw.FixedAxis(yAxisTicks),
         ),
         datasets: [

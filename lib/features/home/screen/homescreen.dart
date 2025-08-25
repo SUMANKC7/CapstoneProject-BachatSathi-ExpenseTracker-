@@ -46,13 +46,10 @@ class _HomescreenState extends State<Homescreen> {
             icon: Icon(Icons.stacked_bar_chart_rounded),
             label: "Budget",
           ),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Add Party"),
           BottomNavigationBarItem(
-            icon: Icon(Icons.emoji_events_outlined),
-            label: "Goal",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings_outlined),
-            label: "Settings",
+            icon: Icon(Icons.trending_up_outlined),
+            label: "Other Assets",
           ),
         ],
       ),

@@ -9,6 +9,27 @@ class PartiesSummaryCards extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<PartiesProvider>(
       builder: (context, provider, child) {
+        if (provider.isLoading) {
+          // Loading placeholders
+          return Container(
+            margin: const EdgeInsets.all(16),
+            child: Row(
+              children: List.generate(2, (index) {
+                return Expanded(
+                  child: Container(
+                    height: 80,
+                    margin: EdgeInsets.only(right: index == 0 ? 12 : 0),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                );
+              }),
+            ),
+          );
+        }
+
         return Container(
           margin: const EdgeInsets.all(16),
           child: Row(
@@ -37,6 +58,7 @@ class PartiesSummaryCards extends StatelessWidget {
     );
   }
 }
+
 
 class SummaryCard extends StatelessWidget {
   final String title;

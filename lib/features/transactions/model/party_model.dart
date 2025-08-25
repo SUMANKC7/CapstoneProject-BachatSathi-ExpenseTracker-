@@ -56,7 +56,7 @@ class AddParty {
       toReceive: data['toReceive'] ?? true,
       createdAt: (data['createdAt'] as Timestamp?)
           ?.toDate(), // Assumes createdAt is a Timestamp
-      avatarColor: _generateColor(data['name'] ?? ''),
+      avatarColor: generateColor(data['name'] ?? ''),
       category: data["category"] ?? "",
     );
   }
@@ -79,7 +79,7 @@ class AddParty {
       createdAt: json['createdAt'] != null
           ? DateTime.fromMillisecondsSinceEpoch(json['createdAt'])
           : null,
-      avatarColor: _generateColor(json['name'] ?? ''),
+      avatarColor: generateColor(json['name'] ?? ''),
       category: json['category'] ?? "",
     );
   }
@@ -121,7 +121,7 @@ class AddParty {
     };
   }
 
-  static Color _generateColor(String name) {
+  static Color generateColor(String name) {
     if (name.isEmpty) return Colors.grey;
     return Colors.primaries[name.length % Colors.primaries.length];
   }

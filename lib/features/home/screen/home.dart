@@ -7,6 +7,7 @@ import 'package:expensetrack/features/home/widgets/spent_today_card.dart';
 import 'package:expensetrack/features/transactions/model/transaction_model.dart';
 import 'package:expensetrack/features/transactions/provider/add_entity_provider.dart';
 import 'package:expensetrack/features/transactions/screen/partyscreen.dart';
+import 'package:expensetrack/features/transactions/widgets/party_widget/party_summary_cards.dart';
 import 'package:expensetrack/features/transactions/widgets/transaction_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -55,46 +56,17 @@ class _HomeState extends State<Home> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const TitleText(title: 'Today'),
-                const SpentTodayCard(),
-                const SizedBox(height: 20),
-
-                // Calculate totals from the transaction stream
                 StreamBuilder<List<AllTransactionModel>>(
-                  key: ValueKey('totals_$_refreshKey'),
                   stream: context
                       .read<AddTransactionProvider>()
                       .repository
                       .listenToTransactions(),
                   builder: (context, snapshot) {
                     if (!snapshot.hasData) {
-                      return Row(
-                        children: [
-                          RecieveGive(
-                            amount: "Rs.0",
-                            account: 'To Receive',
-                            onClicked: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => PartiesScreen(),
-                                ),
-                              );
-                            },
-                          ),
-                          const SizedBox(width: 15),
-                          RecieveGive(
-                            amount: "Rs.0",
-                            account: "To Pay",
-                            onClicked: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => PartiesScreen(),
-                                ),
-                              );
-                            },
-                          ),
-                        ],
+                      return SpentTodayCard(
+                        totalBalance: 0,
+                        income: 0,
+                        expense: 0,
                       );
                     }
 
@@ -105,39 +77,27 @@ class _HomeState extends State<Home> {
                     final expenses = transactions
                         .where((t) => t.expense)
                         .fold(0.0, (sum, t) => sum + t.amount);
+                    final totalBalance = income - expenses;
 
-                    return Row(
-                      children: [
-                        RecieveGive(
-                          amount:
-                              "Rs.${NumberFormat("#,##0.00").format(income)}",
-                          account: 'Income',
-                          onClicked: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => PartiesScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(width: 15),
-                        RecieveGive(
-                          amount:
-                              "Rs.${NumberFormat("#,##0.00").format(expenses)}",
-                          account: "Expenses",
-                          onClicked: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => PartiesScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
+                    return SpentTodayCard(
+                      totalBalance: totalBalance,
+                      income: income,
+                      expense: expenses,
                     );
                   },
+                ),
+
+                const SizedBox(height: 20),
+
+                // Calculate totals from the transaction stream
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => PartiesScreen()),
+                    );
+                  },
+                  child: PartiesSummaryCards(),
                 ),
 
                 const SizedBox(height: 20),
